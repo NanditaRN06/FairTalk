@@ -45,18 +45,24 @@ const CameraVerification = ({ onVerificationComplete }) => {
         try {
             setStatus('PROCESSING');
 
-            // 1. Capture Frame to Canvas
+            // 1. Capture Frame to Canvas (Optimized for speed)
+            const MAX_WIDTH = 640;
+            const videoWidth = videoRef.current.videoWidth;
+            const videoHeight = videoRef.current.videoHeight;
+            const scale = Math.min(1, MAX_WIDTH / videoWidth);
+
             const canvas = document.createElement('canvas');
-            canvas.width = videoRef.current.videoWidth;
-            canvas.height = videoRef.current.videoHeight;
+            canvas.width = videoWidth * scale;
+            canvas.height = videoHeight * scale;
+
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoRef.current, 0, 0);
+            ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
             // 2. Stop Camera IMMEDIATELY (Privacy)
             stopCamera();
 
-            // 3. Convert to Base64
-            const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            // 3. Convert to Base64 (Lower quality for faster upload)
+            const imageBase64 = canvas.toDataURL('image/jpeg', 0.6);
             const deviceId = getOrCreateDeviceId();
 
             // 4. Send to Backend
