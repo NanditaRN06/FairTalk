@@ -4,10 +4,18 @@
 
 ```
 ├── backend
-│   │   ├── controllers
-│   │   │   └── .gitkeep
-│   │   ├── routes
-│   │   │   └── .gitkeep
+│   ├── controllers
+│   │   ├── .gitkeep
+│   │   ├── userController.js
+│   │   └── verificationController.js
+│   ├── models
+│   │   └── User.js
+│   ├── routes
+│   │   ├── .gitkeep
+│   │   ├── userRoutes.js
+│   │   └── verificationRoutes.js
+│   ├── services
+│   │   └── aiService.js
 │   ├── package.json
 │   └── server.js
 ├── frontend
@@ -17,9 +25,17 @@
 │   │   ├── assets
 │   │   │   └── react.svg
 │   │   ├── components
-│   │   │   └── .gitkeep
+│   │   │   ├── .gitkeep
+│   │   │   ├── CameraVerification.jsx
+│   │   │   ├── ChatRoom.jsx
+│   │   │   ├── EligibilityConfirmation.jsx
+│   │   │   ├── MatchingPlaceholder.jsx
+│   │   │   ├── ProfileSetup.jsx
+│   │   │   └── User.jsx
 │   │   ├── utils
-│   │   │   └── .gitkeep
+│   │   │   ├── .gitkeep
+│   │   │   ├── identity.js
+│   │   │   └── questions.json
 │   │   ├── App.css
 │   │   ├── App.jsx
 │   │   ├── index.css
