@@ -1,0 +1,18 @@
+# Backend
+backend/.env
+backend/node_modules/
+backend/package-lock.json
+
+# Frontend
+frontend/.env
+frontend/node_modules/
+frontend/package-lock.json
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+
+# Env
+.env
