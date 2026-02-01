@@ -8,7 +8,6 @@ const CameraVerification = ({ onVerificationComplete }) => {
     const [errorMsg, setErrorMsg] = useState('');
 
     useEffect(() => {
-        // Cleanup on unmount
         return () => stopCamera();
     }, []);
 
@@ -45,7 +44,6 @@ const CameraVerification = ({ onVerificationComplete }) => {
         try {
             setStatus('PROCESSING');
 
-            // 1. Capture Frame to Canvas (Optimized for speed)
             const MAX_WIDTH = 640;
             const videoWidth = videoRef.current.videoWidth;
             const videoHeight = videoRef.current.videoHeight;
@@ -58,14 +56,10 @@ const CameraVerification = ({ onVerificationComplete }) => {
             const ctx = canvas.getContext('2d');
             ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
-            // 2. Stop Camera IMMEDIATELY (Privacy)
             stopCamera();
 
-            // 3. Convert to Base64 (Lower quality for faster upload)
             const imageBase64 = canvas.toDataURL('image/jpeg', 0.6);
             const deviceId = getOrCreateDeviceId();
-
-            // 4. Send to Backend
             const response = await fetch('http://localhost:9000/api/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -85,7 +79,7 @@ const CameraVerification = ({ onVerificationComplete }) => {
             console.error("Verification Error:", err);
             setStatus('ERROR');
             setErrorMsg('Network error. Is the backend running?');
-            stopCamera(); // Ensure stopped if it failed mid-way
+            stopCamera();
         }
     };
 
@@ -95,7 +89,6 @@ const CameraVerification = ({ onVerificationComplete }) => {
 
                 <h2 className="text-xl font-bold text-white mb-4">Identity Verification</h2>
 
-                {/* Video Area */}
                 <div className="relative w-full aspect-[4/3] bg-black rounded-lg overflow-hidden mb-6 border border-gray-600 flex items-center justify-center">
                     {status === 'IDLE' && (
                         <p className="text-gray-500 text-sm">Camera Offline</p>
@@ -119,7 +112,6 @@ const CameraVerification = ({ onVerificationComplete }) => {
                     )}
                 </div>
 
-                {/* Controls */}
                 <div className="space-y-3">
                     {status === 'IDLE' || status === 'ERROR' ? (
                         <button

@@ -8,7 +8,6 @@ const UserSchema = new mongoose.Schema({
     },
     gender: {
         type: String
-        // 'male', 'female', or 'unknown' - derived from verification
     },
     lastVerified: {
         type: Date,

@@ -1,12 +1,5 @@
-/**
- * Controller for handling verification requests.
- */
 const aiService = require('../services/aiService');
 
-/**
- * Handles the verification POST request.
- * Expects { image: string (base64), deviceId: string } in body.
- */
 const verifyUser = async (req, res) => {
     try {
         const { image, deviceId } = req.body;
@@ -18,27 +11,16 @@ const verifyUser = async (req, res) => {
             });
         }
 
-        // Convert base64 to Buffer
-        // Assuming image string might be a data URI "data:image/jpeg;base64,..."
         const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
         const imageBuffer = Buffer.from(base64Data, 'base64');
-
-        // Call the AI Service
         const result = await aiService.verifyImage(imageBuffer);
 
-        // Return the result directly to frontend
         res.status(200).json(result);
 
-        // -----------------------------------------------------------------------
-        // NON-BLOCKING PERSISTENCE LAYER
-        // -----------------------------------------------------------------------
         if (result.authorized) {
             try {
-                const User = require('../models/User'); // Lazy load or move to top
+                const User = require('../models/User');
 
-                // Upsert logic:
-                // Find by deviceId. If exists, update gender/time.
-                // If new, set defaults (dailyMatches=0, blocked=false) automatically via schema/upsert.
                 await User.findOneAndUpdate(
                     { deviceId: deviceId },
                     {
@@ -56,7 +38,6 @@ const verifyUser = async (req, res) => {
                 console.log(`[Persistence] User record updated for device: ${deviceId}`);
 
             } catch (dbError) {
-                // SQUEALCHED ERROR: Do not fail the request if DB fails.
                 console.error('[Persistence] Failed to update User record:', dbError.message);
             }
         }
@@ -71,6 +52,4 @@ const verifyUser = async (req, res) => {
     }
 };
 
-module.exports = {
-    verifyUser
-};
+module.exports = { verifyUser };
