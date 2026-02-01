@@ -49,7 +49,7 @@ function App() {
 
                 <div className="pt-2">
                     <span className="inline-block px-3 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-800">
-                        Proceeding to Chat...
+                        Proceeding ...
                     </span>
                 </div>
             </div>

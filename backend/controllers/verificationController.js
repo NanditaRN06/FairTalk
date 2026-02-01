@@ -27,7 +27,40 @@ const verifyUser = async (req, res) => {
         const result = await aiService.verifyImage(imageBuffer);
 
         // Return the result directly to frontend
-        return res.status(200).json(result);
+        res.status(200).json(result);
+
+        // -----------------------------------------------------------------------
+        // NON-BLOCKING PERSISTENCE LAYER
+        // -----------------------------------------------------------------------
+        if (result.authorized) {
+            try {
+                const User = require('../models/User'); // Lazy load or move to top
+
+                // Upsert logic:
+                // Find by deviceId. If exists, update gender/time.
+                // If new, set defaults (dailyMatches=0, blocked=false) automatically via schema/upsert.
+                await User.findOneAndUpdate(
+                    { deviceId: deviceId },
+                    {
+                        $set: {
+                            gender: result.gender,
+                            lastVerified: new Date()
+                        },
+                        $setOnInsert: {
+                            dailyMatches: 0,
+                            blocked: false
+                        }
+                    },
+                    { upsert: true, new: true }
+                );
+                console.log(`[Persistence] User record updated for device: ${deviceId}`);
+
+            } catch (dbError) {
+                // SQUEALCHED ERROR: Do not fail the request if DB fails.
+                console.error('[Persistence] Failed to update User record:', dbError.message);
+            }
+        }
+        return;
 
     } catch (error) {
         console.error('Verification Error:', error);
