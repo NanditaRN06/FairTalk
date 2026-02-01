@@ -1,5 +1,8 @@
 # Klymo Hackathon
 
+## Folder structure
+
+```
 ├── backend
 │   │   ├── controllers
 │   │   │   └── .gitkeep
