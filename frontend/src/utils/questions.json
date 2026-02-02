@@ -1,0 +1,109 @@
+{
+    "introText": "To help create better conversations, we'll ask you a few quick questions about how you like to chat.\n\nThis isn't a personality test, and there are no right or wrong answers.\nYour responses are used only to set the conversation tone and are never shown to other users.\n\nIt takes less than a minute - answer honestly and go with what feels most like you.",
+    "questions": [
+        {
+            "id": "q1",
+            "text": "How do you usually express yourself?",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Direct"
+                },
+                {
+                    "id": "B",
+                    "text": "Playful"
+                },
+                {
+                    "id": "C",
+                    "text": "Reflective"
+                },
+                {
+                    "id": "D",
+                    "text": "Expressive"
+                },
+                {
+                    "id": "E",
+                    "text": "Reserved"
+                }
+            ]
+        },
+        {
+            "id": "q2",
+            "text": "Your preferred chat vibe?",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Chill"
+                },
+                {
+                    "id": "B",
+                    "text": "Energetic"
+                },
+                {
+                    "id": "C",
+                    "text": "Deep"
+                },
+                {
+                    "id": "D",
+                    "text": "Casual"
+                },
+                {
+                    "id": "E",
+                    "text": "Unpredictable"
+                }
+            ]
+        },
+        {
+            "id": "q3",
+            "text": "How do you usually prefer to start a conversation?",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "With a deep or thoughtful question"
+                },
+                {
+                    "id": "B",
+                    "text": "With light humor or jokes"
+                },
+                {
+                    "id": "C",
+                    "text": "By sharing an opinion or idea"
+                },
+                {
+                    "id": "D",
+                    "text": "By listening first and responding slowly"
+                },
+                {
+                    "id": "E",
+                    "text": "Depends entirely on the other person"
+                }
+            ]
+        },
+        {
+            "id": "q4",
+            "text": "Your curiosity level?",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Low-key"
+                },
+                {
+                    "id": "B",
+                    "text": "Selective"
+                },
+                {
+                    "id": "C",
+                    "text": "High"
+                },
+                {
+                    "id": "D",
+                    "text": "Situational"
+                },
+                {
+                    "id": "E",
+                    "text": "Endless"
+                }
+            ]
+        }
+    ]
+}
