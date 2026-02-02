@@ -1,21 +1,10 @@
-/**
- * Service for handling AI-based verification using Luxand.cloud.
- */
 const axios = require('axios');
 
-// Threshold for considering a verification successful
 const MIN_CONFIDENCE = 0.85;
 
-// Luxand specific constants
 const LUXAND_API_URL = 'https://api.luxand.cloud/photo/detect';
 const API_TOKEN = process.env.LUXAND_API_TOKEN;
 
-/**
- * Verifies a user's gender using the Luxand.cloud API.
- * 
- * @param {Buffer} imageBuffer - The image data
- * @returns {Promise<Object>} Verification result
- */
 const verifyImage = async (imageBuffer) => {
     if (!API_TOKEN) {
         console.error("Missing LUXAND_API_TOKEN in environment variables.");
@@ -28,11 +17,8 @@ const verifyImage = async (imageBuffer) => {
     }
 
     try {
-        // Luxand accepts base64 via "photo" form parameter (standard url-encoded)
-        // We will send standard application/x-www-form-urlencoded
         const base64Image = imageBuffer.toString('base64');
 
-        // Use URLSearchParams for x-www-form-urlencoded body
         const params = new URLSearchParams();
         params.append('photo', base64Image);
 
@@ -43,7 +29,6 @@ const verifyImage = async (imageBuffer) => {
             }
         });
 
-        // Luxand returns an array of faces directly: [ { gender: ..., rectangle: ... } ]
         const faces = response.data;
         console.log("Luxand API Response:", faces);
 
@@ -57,10 +42,8 @@ const verifyImage = async (imageBuffer) => {
             };
         }
 
-        // We'll take the first face detected
         const face = faces[0];
 
-        // Check for gender data
         if (!face.gender || !face.gender.value) {
             return {
                 authorized: false,
@@ -70,14 +53,12 @@ const verifyImage = async (imageBuffer) => {
             };
         }
 
-        const genderValue = face.gender.value; // "Male" or "Female"
-        const genderProb = face.gender.probability; // 0.0 to 1.0
+        const genderValue = face.gender.value;
+        const genderProb = face.gender.probability;
 
-        // Normalize
-        const gender = genderValue.toLowerCase(); // 'male' or 'female'
+        const gender = genderValue.toLowerCase();
         const confidence = parseFloat(genderProb.toFixed(4));
 
-        // Authorization logic
         const authorized = confidence >= MIN_CONFIDENCE;
 
         return {
@@ -99,7 +80,4 @@ const verifyImage = async (imageBuffer) => {
     }
 };
 
-module.exports = {
-    verifyImage,
-    MIN_CONFIDENCE
-};
+module.exports = { verifyImage, MIN_CONFIDENCE };

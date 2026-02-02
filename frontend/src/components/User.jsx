@@ -44,7 +44,6 @@ function User() {
 
         } catch (err) {
             console.error('Failed to check eligibility:', err);
-            // On error, we assume ineligible for safety, or handle appropriately
             setHandoffPayload({ eligible: false });
         }
     };
@@ -55,23 +54,19 @@ function User() {
 
     const handleLeaveChat = () => {
         alert("Bye for now");
-        // Reset State to Initial
         setIsVerified(false);
         setUserData(null);
         setShowProfileSetup(false);
         setProfileData(null);
         setHandoffPayload(null);
         setEnteredChat(false);
-        // Page refresh is cleaner for "removing existence" from memory
         window.location.reload();
     };
 
-    // Stage 1: Camera Verification
     if (!isVerified) {
         return <CameraVerification onVerificationComplete={handleVerificationComplete} />;
     }
 
-    // Stage 2: Verification Transition
     if (!showProfileSetup) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans">
@@ -85,16 +80,9 @@ function User() {
         );
     }
 
-    // Stage 3: Profile Setup
-    if (!profileData) {
-        return <ProfileSetup onProfileComplete={handleProfileComplete} />;
-    }
+    if (!profileData) { return <ProfileSetup onProfileComplete={handleProfileComplete} />; }
 
-    // Stage 4: Eligibility Confirmation (Replaces Placeholder)
     if (handoffPayload && !enteredChat) {
-        // If not eligible, maybe show error or just default to confirmation with error handling? 
-        // For this task, assuming we mostly care about the flow for eligible users.
-        // If strict eligibility check failed, we probably shouldn't show this, but keeping logic verified.
         if (!handoffPayload.eligible) {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
@@ -109,10 +97,7 @@ function User() {
         return <EligibilityConfirmation onJoin={handleJoinChat} onLeave={handleLeaveChat} />;
     }
 
-    // Stage 5: Chat Room
-    if (enteredChat) {
-        return <ChatRoom />;
-    }
+    if (enteredChat) { return <ChatRoom />; }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans">

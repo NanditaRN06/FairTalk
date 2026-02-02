@@ -29,7 +29,6 @@
 │   │   │   ├── CameraVerification.jsx
 │   │   │   ├── ChatRoom.jsx
 │   │   │   ├── EligibilityConfirmation.jsx
-│   │   │   ├── MatchingPlaceholder.jsx
 │   │   │   ├── ProfileSetup.jsx
 │   │   │   └── User.jsx
 │   │   ├── utils

@@ -7,9 +7,7 @@ const CameraVerification = ({ onVerificationComplete }) => {
     const [status, setStatus] = useState('IDLE'); // IDLE, PREVIEW, PROCESSING, ERROR
     const [errorMsg, setErrorMsg] = useState('');
 
-    useEffect(() => {
-        return () => stopCamera();
-    }, []);
+    useEffect(() => { return () => stopCamera(); }, []);
 
     const startCamera = async () => {
         try {
