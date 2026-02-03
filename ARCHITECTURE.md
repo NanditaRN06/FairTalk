@@ -87,8 +87,10 @@ To strictly enforce "One Person, Five Matches per Day" without login walls:
 -   **Server-Side:** usage of `mongoose` with `upsert: true` on the `deviceId` key ensures we track metadata (daily count, last match time) without needing personal info like email or phone numbers.
 
 ---
+## 6.  Live Deployment: 
+[https://websocket-server-ihw6.onrender.com/](https://websocket-server-ihw6.onrender.com/)
 
-## 6. Architecture Hierarchy Diagram
+## 7. Architecture Hierarchy Diagram
 
 ```text
 +-----------------------------------------------------------------------------+
@@ -155,7 +157,7 @@ To strictly enforce "One Person, Five Matches per Day" without login walls:
 +-----------------------------------------------------------------------------+
 ```
 
-### 6.1 Matching Flow (Simplified)
+### 7.1 Matching Flow (Simplified)
 ```text
    USER (You)                       FAIRTALK SERVER
       |                                   |
@@ -177,8 +179,8 @@ To strictly enforce "One Person, Five Matches per Day" without login walls:
       v                                   v
    Enters Chat Room                Removes Both from Queue
 ```
-
-### 6.2 Chat Flow (Simplified)
+    
+### 7.2 Chat Flow (Simplified)
 ```text
     YOU                           SERVER                       PARTNER
      |                              |                             |
