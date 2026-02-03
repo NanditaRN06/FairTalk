@@ -34,11 +34,17 @@ function User() {
         setHandoffPayload(null);
 
         try {
+            // Keep checks based on deviceId for anti-spam/bans
             const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
             const eligibilityData = await response.json();
 
+            // Generate a fresh User ID for this session/match attempt
+            // This allows multiple 'users' (tabs) on the same device/browser to match
+            const sessionUserId = crypto.randomUUID();
+
             const payload = {
                 deviceId,
+                userId: sessionUserId, // New session ID
                 gender: userData?.gender || 'unknown',
                 nickname: profile.nickname,
                 eligible: eligibilityData.eligible === true
@@ -111,7 +117,8 @@ function User() {
     if (searching) {
         return (
             <MatchingQueue
-                deviceId={deviceId}
+                deviceId={deviceId} // Keep for logs if needed
+                userId={handoffPayload.userId} // Pass the session User ID
                 profileData={profileData}
                 onMatchFound={handleMatchFound}
             />
@@ -119,11 +126,18 @@ function User() {
     }
 
     if (enteredChat) {
+        // Determine partner name logic
+        // We compare against OUR userId now
+        const myUserId = handoffPayload.userId;
+        const isUserA = matchInfo.userA.userId === myUserId;
+        const partnerName = isUserA ? matchInfo.userB.nickname : matchInfo.userA.nickname;
+
         return (
             <ChatPage
-                deviceId={deviceId}
+                deviceId={deviceId} // Legacy prop, maybe unused now
+                userId={myUserId}   // New prop for socket connection
                 matchId={matchInfo.matchId}
-                partnerName={matchInfo.userA.deviceId === deviceId ? matchInfo.userB.nickname : matchInfo.userA.nickname}
+                partnerName={partnerName}
                 onLeave={handleLeaveChat}
             />
         );

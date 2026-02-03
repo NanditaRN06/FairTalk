@@ -129,6 +129,7 @@ async function processQueue() {
             for (let i = 0; i < queueLen; i++) {
                 const candA = candidates[i];
                 const userA = candA.obj;
+                const idA = userA.userId || userA.deviceId;
 
                 let bestMatchIdx = -1;
                 let maxScore = -Infinity;
@@ -137,9 +138,19 @@ async function processQueue() {
                 for (let j = i + 1; j < queueLen; j++) {
                     const candB = candidates[j];
                     const userB = candB.obj;
+                    const idB = userB.userId || userB.deviceId;
 
-                    if (userA.deviceId === userB.deviceId) {
-                        console.warn(`[MatchingService] SKIP: ${userA.nickname} uses same DeviceID as ${userB.nickname}`);
+                    // Prevent matching with self
+                    if (idA === idB) {
+                        // console.warn(`[Matching] Skip self-match: ${userA.nickname}`);
+                        continue;
+                    }
+
+                    // Check if already in active session (prevent double matching)
+                    const isActiveA = await redis.sismember(ACTIVE_SESSIONS_KEY, idA);
+                    const isActiveB = await redis.sismember(ACTIVE_SESSIONS_KEY, idB);
+
+                    if (isActiveA || isActiveB) {
                         continue;
                     }
 
@@ -154,13 +165,15 @@ async function processQueue() {
                 if (bestMatchIdx !== -1) {
                     const candB = candidates[bestMatchIdx];
                     const userB = candB.obj;
+                    const idB = userB.userId || userB.deviceId;
+
                     console.log(`[MatchingService] MATCH SELECTED: ${userA.nickname} & ${userB.nickname} (Score: ${maxScore})`);
 
                     const matchId = uuidv4();
                     const matchData = {
                         matchId,
-                        userA: { deviceId: userA.deviceId, nickname: userA.nickname },
-                        userB: { deviceId: userB.deviceId, nickname: userB.nickname },
+                        userA: { userId: idA, deviceId: userA.deviceId, nickname: userA.nickname },
+                        userB: { userId: idB, deviceId: userB.deviceId, nickname: userB.nickname },
                         reason: bestReason,
                         timestamp: currentTime
                     };
@@ -168,12 +181,13 @@ async function processQueue() {
                     const pipeline = redis.pipeline();
                     pipeline.zrem(QUEUE_KEY, candA.raw);
                     pipeline.zrem(QUEUE_KEY, candB.raw);
-                    pipeline.sadd(ACTIVE_SESSIONS_KEY, userA.deviceId);
-                    pipeline.sadd(ACTIVE_SESSIONS_KEY, userB.deviceId);
+                    pipeline.sadd(ACTIVE_SESSIONS_KEY, idA);
+                    pipeline.sadd(ACTIVE_SESSIONS_KEY, idB);
 
                     pipeline.set(`${MATCH_SESSION_PREFIX}${matchId}`, JSON.stringify(matchData), { ex: 3600 });
-                    pipeline.hset(DEVICE_MATCH_MAP, { [userA.deviceId]: matchId });
-                    pipeline.hset(DEVICE_MATCH_MAP, { [userB.deviceId]: matchId });
+                    // Store match against userId so client polling finds it
+                    pipeline.hset(DEVICE_MATCH_MAP, { [idA]: matchId });
+                    pipeline.hset(DEVICE_MATCH_MAP, { [idB]: matchId });
 
                     pipeline.publish(MATCH_CHANNEL, JSON.stringify({ type: "match_found", payload: matchData }));
 
@@ -188,12 +202,12 @@ async function processQueue() {
     }, 1000);
 }
 
-async function cleanupMatchData(matchId, deviceIds) {
+async function cleanupMatchData(matchId, userIds) {
     console.log(`[MatchingService] Cleaning up match ${matchId} in 2s...`);
     setTimeout(async () => {
         const pipeline = redis.pipeline();
         pipeline.del(`${MATCH_SESSION_PREFIX}${matchId}`);
-        for (const id of deviceIds) {
+        for (const id of userIds) {
             pipeline.hdel(DEVICE_MATCH_MAP, id);
             pipeline.srem(ACTIVE_SESSIONS_KEY, id);
         }

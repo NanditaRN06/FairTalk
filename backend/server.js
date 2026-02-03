@@ -62,6 +62,7 @@ async function handleQueueConnection(ws, req) {
             const message = JSON.parse(data);
             if (message.type === "join_queue") {
                 userData = message.payload;
+                // userData has { deviceId, userId, nickname, ... }
                 const userJson = JSON.stringify(userData);
 
                 await redis.zadd(QUEUE_KEY, { score: Date.now() / 1000, member: userJson });
@@ -69,7 +70,10 @@ async function handleQueueConnection(ws, req) {
 
                 pollInterval = setInterval(async () => {
                     try {
-                        const matchId = await redis.hget(DEVICE_MATCH_MAP, userData.deviceId);
+                        // Check for match using userId
+                        const targetId = userData.userId || userData.deviceId;
+                        const matchId = await redis.hget(DEVICE_MATCH_MAP, targetId);
+
                         if (matchId) {
                             const matchData = await redis.get(`${MATCH_SESSION_PREFIX}${matchId}`);
                             let finalMatchData = matchData;
@@ -95,10 +99,23 @@ async function handleQueueConnection(ws, req) {
     ws.on("close", async () => {
         if (pollInterval) clearInterval(pollInterval);
         if (userData) {
-            const matchId = await redis.hget(DEVICE_MATCH_MAP, userData.deviceId);
+            // Only remove from queue if NOT matched yet.
+            // If matchId exists in DEVICE_MATCH_MAP, it means they were matched while they were polling.
+            const targetId = userData.userId || userData.deviceId;
+            const matchId = await redis.hget(DEVICE_MATCH_MAP, targetId);
             if (!matchId) {
                 const userJson = JSON.stringify(userData);
+                // We must be careful to remove the EXACT member string.
+                // However, user attributes might have slight serialization diffs if not careful.
+                // Since we stored exactly `JSON.stringify(userData)` in `message.payload`, we use that.
+
+                // Also double check strictly if they are still in queue to avoid race conditions?
                 await redis.zrem(QUEUE_KEY, userJson);
+                // console.log(`[Queue] Removed user ${userData.nickname} from queue on disconnect.`);
+            } else {
+                // If they HAVE a matchId, do NOT remove from queue here, 
+                // because the matching service already removed them from queue (zrem) when creating the match.
+                // Doing nothing is correct.
             }
         }
     });
@@ -107,14 +124,16 @@ async function handleQueueConnection(ws, req) {
 wss.on("connection", (ws, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const matchId = url.searchParams.get("matchId") || "default";
-    const deviceId = url.searchParams.get("deviceId") || "device-" + Math.random().toString(36).substr(2, 9);
+    const deviceId = url.searchParams.get("deviceId");
+    const userId = url.searchParams.get("userId") || deviceId || "anon-" + Math.random();
 
     if (!chatSessions[matchId]) {
         chatSessions[matchId] = {};
     }
 
-    chatSessions[matchId][deviceId] = ws;
-    console.log(`[WebSocket] Device ${deviceId} joined match ${matchId}`);
+    // Use userId as the session key
+    chatSessions[matchId][userId] = ws;
+    console.log(`[WebSocket] User ${userId} (Device: ${deviceId}) joined match ${matchId}`);
 
     ws.on("message", (data) => {
         try {
@@ -123,7 +142,7 @@ wss.on("connection", (ws, req) => {
 
             if (action === "message") {
                 for (const [id, socket] of Object.entries(chatSessions[matchId])) {
-                    if (id !== deviceId && socket.readyState === WebSocket.OPEN) {
+                    if (id !== userId && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({
                             type: "message",
                             from: "partner",
@@ -133,40 +152,52 @@ wss.on("connection", (ws, req) => {
                 }
             } else if (action === "leave") {
                 ws.isIntentionalLeave = true;
-                handleDisconnect(matchId, deviceId, true);
+                handleDisconnect(matchId, userId, true);
             }
         } catch (error) {
             console.error("WebSocket message error:", error);
         }
     });
 
-    ws.on("close", () => {
-        if (!ws.isIntentionalLeave) {
-            handleDisconnect(matchId, deviceId, false);
-        }
+    // Heartbeat to keep connections alive
+    const heartbeatInterval = setInterval(() => {
+        wss.clients.forEach((ws) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: "ping" }));
+            }
+        });
+    }, 30000);
+
+    wss.on("close", () => {
+        clearInterval(heartbeatInterval);
     });
 
-    function handleDisconnect(mId, dId, permanent) {
-        if (chatSessions[mId] && chatSessions[mId][dId]) {
-            console.log(`Device ${dId} left match ${mId} (Permanent: ${permanent})`);
+    ws.on("close", () => {
+        // Treat ALL disconnects as permanent to ensure privacy and data removal.
+        // Since the frontend generates a new UserID on refresh, reconnection isn't possible anyway.
+        // This ensures usernames/bio are wiped from Redis immediately upon exit/refresh.
+        handleDisconnect(matchId, userId, true);
+    });
 
-            if (permanent) {
-                for (const [id, socket] of Object.entries(chatSessions[mId])) {
-                    if (id !== dId && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({
-                            type: "system",
-                            event: "partner_left",
-                        }));
-                    }
+    function handleDisconnect(mId, uId, permanent) {
+        if (chatSessions[mId] && chatSessions[mId][uId]) {
+            console.log(`User ${uId} left match ${mId}`);
+
+            // Notify partner
+            for (const [id, socket] of Object.entries(chatSessions[mId])) {
+                if (id !== uId && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: "system",
+                        event: "partner_left",
+                    }));
                 }
-
-                cleanupMatchData(mId, [dId]);
-                delete chatSessions[mId][dId];
-            } else {
-                delete chatSessions[mId][dId];
             }
 
-            if (Object.keys(chatSessions[mId]).length === 0 && permanent) {
+            // Always cleanup Redis data
+            cleanupMatchData(mId, [uId]);
+            delete chatSessions[mId][uId];
+
+            if (Object.keys(chatSessions[mId]).length === 0) {
                 delete chatSessions[mId];
             }
         }

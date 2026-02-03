@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-export default function ChatPage({ deviceId, matchId, partnerName, onLeave }) {
+export default function ChatPage({ deviceId, userId, matchId, partnerName, onLeave }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [connected, setConnected] = useState(false);
@@ -10,10 +10,11 @@ export default function ChatPage({ deviceId, matchId, partnerName, onLeave }) {
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        if (!deviceId || !matchId) return;
+        if (!userId || !matchId) return;
 
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const url = `${protocol}//${window.location.hostname}:9000/ws/chat?matchId=${matchId}&deviceId=${deviceId}`;
+        // Pass userId as the identifier for the chat session
+        const url = `${protocol}//${window.location.hostname}:9000/ws/chat?matchId=${matchId}&userId=${userId}&deviceId=${deviceId}`;
 
         ws.current = new WebSocket(url);
 
@@ -25,17 +26,16 @@ export default function ChatPage({ deviceId, matchId, partnerName, onLeave }) {
         ws.current.onmessage = (event) => {
             const data = JSON.parse(event.data);
 
-            if (data.type === "message") {
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        sender: partnerName,
-                        text: data.text,
-                        type: "incoming"
-                    }
-                ]);
-            } else if (data.type === "system" && data.event === "partner_left") {
+            if (data.type === "ping") {
+                // Heartbeat, ignore or send pong if needed (not needed for this simple keep-alive)
+                return;
+            }
+
+            if (data.type === "system" && data.event === "partner_left") {
                 setPartnerLeft(true);
+                // setConnected(false); // Optional: keep as connected but show partner left
+            } else if (data.type === "message") {
+                setMessages((prev) => [...prev, { text: data.text, sender: partnerName, type: "incoming" }]);
             }
         };
 

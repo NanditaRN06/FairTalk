@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const MatchingQueue = ({ deviceId, profileData, onMatchFound }) => {
+const MatchingQueue = ({ deviceId, userId, profileData, onMatchFound }) => {
     const [status, setStatus] = useState("initializing");
     const [dots, setDots] = useState("");
 
@@ -19,7 +19,8 @@ const MatchingQueue = ({ deviceId, profileData, onMatchFound }) => {
             socket.send(JSON.stringify({
                 type: "join_queue",
                 payload: {
-                    deviceId,
+                    deviceId, // Keep for legacy/logging
+                    userId,   // Use for matching identity
                     nickname: profileData.nickname,
                     bio: profileData.bio,
                     personalityAnswers: profileData.personalityAnswers
