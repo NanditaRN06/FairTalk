@@ -201,9 +201,9 @@ if (WS_SERVER_URL) {
     }, 5 * 60 * 1000);
 }
 
-server.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });
-
 mongoose
     .connect(process.env.MONGO_URI)
     .then(() => { console.log("MongoDB connected"); })
     .catch((err) => { console.error("MongoDB connection failed:", err.message); });
+
+server.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });
