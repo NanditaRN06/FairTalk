@@ -98,7 +98,7 @@ function User() {
         return <EligibilityConfirmation onJoin={handleJoinChat} onLeave={handleLeaveChat} />;
     }
 
-    if (enteredChat) { return <ChatPage />; }
+    if (enteredChat) { return <ChatPage deviceId={deviceId} />; }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans">
