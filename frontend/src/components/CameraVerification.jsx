@@ -82,56 +82,94 @@ const CameraVerification = ({ onVerificationComplete }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 p-6 rounded-2xl shadow-2xl max-w-sm w-full border border-gray-700 text-center">
+        <div className="fixed inset-0 bg-surface-darkest/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            {/* Animated background blobs */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-brand-primary/20 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-brand-accent/20 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+            </div>
 
-                <h2 className="text-xl font-bold text-white mb-4">Identity Verification</h2>
+            <div className="glass-card p-8 rounded-[2.5rem] max-w-sm w-full relative z-10 text-center">
+                <div className="mb-8">
+                    <h2 className="text-3xl font-heading font-bold text-white mb-2 leading-tight">Fast Pass</h2>
+                    <p className="text-slate-400 text-sm font-medium">Verify your human vibes to enter.</p>
+                </div>
 
-                <div className="relative w-full aspect-[4/3] bg-black rounded-lg overflow-hidden mb-6 border border-gray-600 flex items-center justify-center">
+                <div className="relative w-full aspect-square bg-surface-darkest/50 rounded-3xl overflow-hidden mb-8 border border-white/5 ring-1 ring-white/10 flex items-center justify-center group shadow-inner">
                     {status === 'IDLE' && (
-                        <p className="text-gray-500 text-sm">Camera Offline</p>
-                    )}
-                    {status === 'ERROR' && (
-                        <div className="p-4 text-red-400 text-sm">
-                            {errorMsg}
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-white/10 transition-all duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </div>
                         </div>
                     )}
+
+                    {status === 'ERROR' && (
+                        <div className="px-6 py-4 flex flex-col items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-rose-500/20 flex items-center justify-center text-rose-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <p className="text-rose-400 text-xs font-semibold leading-relaxed">
+                                {errorMsg}
+                            </p>
+                        </div>
+                    )}
+
                     <video
                         ref={videoRef}
                         autoPlay
                         playsInline
                         muted
-                        className={`w-full h-full object-cover ${status === 'PREVIEW' ? 'block' : 'hidden'}`}
+                        className={`w-full h-full object-cover grayscale brightness-110 contrast-125 ${status === 'PREVIEW' ? 'block animate-fade-in' : 'hidden'}`}
                     />
+
                     {status === 'PROCESSING' && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-green-500"></div>
+                        <div className="absolute inset-0 bg-brand-primary/20 backdrop-blur-sm flex items-center justify-center">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-white/20 blur-xl animate-pulse rounded-full"></div>
+                                <div className="animate-spin rounded-full h-12 w-12 border-2 border-white/20 border-t-white relative z-10"></div>
+                            </div>
                         </div>
+                    )}
+
+                    {/* Scanner line animation for processing */}
+                    {status === 'PREVIEW' && (
+                        <div className="absolute w-full h-0.5 bg-brand-primary shadow-[0_0_10px_#6366f1] top-0 left-0 animate-[shimmer_3s_linear_infinite]"></div>
                     )}
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                     {status === 'IDLE' || status === 'ERROR' ? (
                         <button
                             onClick={startCamera}
-                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+                            className="btn-primary w-full group overflow-hidden relative"
                         >
-                            {status === 'ERROR' ? 'Retry Camera' : 'Enable Camera'}
+                            <span className="relative z-10">{status === 'ERROR' ? 'Try Again' : 'Unlock Camera'}</span>
                         </button>
                     ) : null}
 
                     {status === 'PREVIEW' && (
                         <button
                             onClick={handleVerify}
-                            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition shadow-lg shadow-green-900/50"
+                            className="w-full py-4 bg-white text-surface-darkest font-bold rounded-2xl shadow-xl hover:bg-slate-100 transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                         >
-                            Verify Me
+                            Snap & Verify
                         </button>
                     )}
 
-                    <p className="text-xs text-gray-500 mt-4">
-                        We capture one frame only. <br /> Image is never stored.
-                    </p>
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                            Private. Not stored. Always secure.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

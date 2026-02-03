@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 
 const MatchingQueue = ({ deviceId, userId, profileData, onMatchFound }) => {
     const [status, setStatus] = useState("initializing");
-    const [dots, setDots] = useState("");
+    const [seconds, setSeconds] = useState(0);
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
-        }, 500);
+            setSeconds(prev => prev + 1);
+        }, 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -19,8 +19,8 @@ const MatchingQueue = ({ deviceId, userId, profileData, onMatchFound }) => {
             socket.send(JSON.stringify({
                 type: "join_queue",
                 payload: {
-                    deviceId, // Keep for legacy/logging
-                    userId,   // Use for matching identity
+                    deviceId,
+                    userId,
                     nickname: profileData.nickname,
                     bio: profileData.bio,
                     personalityAnswers: profileData.personalityAnswers
@@ -36,7 +36,7 @@ const MatchingQueue = ({ deviceId, userId, profileData, onMatchFound }) => {
                 setStatus("matched");
                 setTimeout(() => {
                     onMatchFound(data.match);
-                }, 1500);
+                }, 2000);
             }
         };
 
@@ -51,56 +51,89 @@ const MatchingQueue = ({ deviceId, userId, profileData, onMatchFound }) => {
         };
     }, [deviceId, profileData, onMatchFound]);
 
+    const progress = Math.min((seconds / 30) * 100, 95);
+    const segments = 12;
+
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
-            <div className="w-full max-w-md bg-gray-800 rounded-3xl p-10 border border-gray-700 shadow-2xl text-center space-y-8 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse" />
+        <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+            <div className={`absolute inset-0 transition-colors duration-1000 ${status === 'matched' ? 'bg-vibrant-emerald/5' : 'bg-brand-primary/5'}`}></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brand-primary/5 rounded-full blur-[180px] animate-blob"></div>
 
-                <div className="space-y-4">
-                    <div className="relative inline-block">
-                        <div className="w-24 h-24 rounded-full border-4 border-blue-500/20 border-t-blue-500 animate-spin" />
-                        <div className="absolute inset-0 flex items-center justify-center font-bold text-blue-400">
-                            {status === "matched" ? "✓" : "⚡"}
+            <div className="w-full max-w-lg glass-card rounded-[4rem] p-10 sm:p-14 relative z-10 text-center shadow-2xl border-white/5 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-primary to-transparent opacity-50"></div>
+
+                <div className="space-y-10 relative">
+                    <div className="relative inline-flex items-center justify-center">
+                        <div className="absolute w-48 h-48 animate-spin-slow">
+                            {[...Array(segments)].map((_, i) => (
+                                <div
+                                    key={i}
+                                    className={`absolute w-1.5 h-6 rounded-full left-1/2 top-0 -translate-x-1/2 origin-[0_96px] transition-all duration-500 ${(i / segments) * 100 < progress ? 'bg-brand-primary' : 'bg-white/5'
+                                        }`}
+                                    style={{ transform: `rotate(${i * (360 / segments)}deg)` }}
+                                ></div>
+                            ))}
                         </div>
+
+                        <div className={`relative w-28 h-28 rounded-full flex items-center justify-center transition-all duration-700 ${status === 'matched'
+                            ? 'bg-vibrant-emerald shadow-[0_0_50px_rgba(16,185,129,0.5)] rotate-0'
+                            : 'bg-gradient-to-br from-brand-primary to-brand-secondary shadow-[0_0_40px_rgba(99,102,241,0.4)] animate-pulse'
+                            }`}>
+                            {status === 'matched' ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-14 w-14 text-white animate-fade-in" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                            ) : (
+                                <div className="flex flex-col items-center">
+                                    <span className="text-3xl animate-bounce">⚡</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {!(status === 'matched') && (
+                            <>
+                                <div className="absolute w-32 h-32 border border-brand-primary/30 rounded-full animate-ping opacity-20"></div>
+                                <div className="absolute w-40 h-40 border border-brand-secondary/20 rounded-full animate-ping opacity-10 [animation-delay:0.5s]"></div>
+                            </>
+                        )}
                     </div>
 
-                    <h2 className="text-3xl font-extrabold tracking-tight">
-                        {status === "matched" ? "Match Found!" : "Finding your match"}
-                        {status !== "matched" && <span>{dots}</span>}
-                    </h2>
+                    <div className="space-y-4">
+                        <h2 className="text-4xl font-heading font-black text-white tracking-tighter leading-tight italic">
+                            {status === "matched" ? "SIGNAL LOCKED" : "TRANSMITTING..."}
+                        </h2>
 
-                    <p className="text-gray-400 text-sm">
-                        {status === "searching"
-                            ? "Analyzing personality profiles for the perfect connection..."
-                            : status === "matched"
-                                ? "Initializing secure chat session..."
-                                : "Connecting to matching server..."}
-                    </p>
-                </div>
+                        <p className="text-slate-400 font-bold text-sm tracking-widest uppercase h-6">
+                            {status === "searching"
+                                ? "Analyzing frequency patterns..."
+                                : status === "matched"
+                                    ? "Stabilizing connection..."
+                                    : "Opening secure uplink..."}
+                        </p>
 
-                <div className="bg-gray-900/50 rounded-2xl p-6 border border-gray-700/50 space-y-3">
-                    <div className="flex justify-between items-center text-xs text-gray-500 uppercase font-semibold">
-                        <span>Your Identity</span>
-                        <span className="text-blue-400">Live</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-xl shadow-lg">
-                            {profileData.nickname.charAt(0).toUpperCase()}
+                        <div className="inline-block px-4 py-1.5 bg-white/5 rounded-full text-[10px] font-black tracking-widest text-slate-500 uppercase">
+                            Tip: A warm "Hey" goes a long way
                         </div>
-                        <div className="text-left">
-                            <div className="text-white font-bold">{profileData.nickname}</div>
-                            <div className="text-gray-400 text-xs truncate max-w-[200px]">
-                                {profileData.bio || "No bio set"}
+                    </div>
+                    <div className="glass-card rounded-3xl p-6 border-white/5 shadow-inner bg-surface-darkest/30 flex items-center gap-5 transition-all hover:bg-surface-darkest/50 cursor-default">
+                        <div className="relative">
+                            <div className="w-16 h-16 bg-gradient-to-br from-brand-primary to-brand-secondary rounded-2xl flex items-center justify-center text-3xl font-heading font-black text-white shadow-xl rotate-3">
+                                {profileData.nickname.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-vibrant-emerald border-2 border-surface-card rounded-full shadow-lg"></div>
+                        </div>
+                        <div className="text-left flex-1 min-w-0">
+                            <div className="text-white font-black font-heading text-lg tracking-tight mb-0.5 truncate uppercase">
+                                {profileData.nickname}
+                            </div>
+                            <div className="text-slate-500 text-xs font-medium truncate italic">
+                                {profileData.bio || "Searching for conversation..."}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {status === "searching" && (
-                    <div className="animate-pulse text-xs text-gray-500">
-                        Stay on this page to remain in the queue
-                    </div>
-                )}
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-brand-secondary/10 rounded-full blur-3xl"></div>
             </div>
         </div>
     );

@@ -42,28 +42,39 @@ const ProfileSetup = ({ onProfileComplete }) => {
         });
     };
 
+    const BackgroundBlobs = () => (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-brand-primary/10 rounded-full blur-[100px] animate-blob"></div>
+            <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-brand-accent/10 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
+        </div>
+    );
+
     if (step === 1) {
         return (
-            <div className="min-h-screen flex items-center justify-center px-4">
-                <div className="w-full max-w-xl bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 p-8 sm:p-10 text-center">
+            <div className="min-h-screen flex items-center justify-center px-4 relative">
+                <BackgroundBlobs />
+                <div className="w-full max-w-xl glass-card rounded-[3rem] p-10 sm:p-12 text-center relative z-10 animate-fade-in shadow-2xl">
+                    <div className="w-20 h-20 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-xl rotate-12">
+                        ✔️
+                    </div>
 
-                    <h2 className="text-3xl font-extrabold text-white mb-4">
-                        Welcome
+                    <h2 className="text-4xl font-heading font-extrabold text-white mb-6 leading-tight">
+                        Fresh Start
                     </h2>
 
-                    <p className="text-gray-400 text-sm mb-8">
-                        Before we start, here’s how this works.
+                    <p className="text-slate-400 font-medium mb-10 text-lg uppercase tracking-widest text-sm">
+                        Guidelines & Vibes
                     </p>
 
-                    <div className="bg-gray-800/80 p-6 rounded-xl mb-10 text-gray-300 text-sm leading-relaxed whitespace-pre-line text-left">
+                    <div className="bg-surface-darkest/40 backdrop-blur-md p-8 rounded-3xl mb-12 text-slate-300 text-[15px] leading-relaxed whitespace-pre-line text-left border border-white/5 shadow-inner max-h-[40vh] overflow-y-auto custom-scrollbar">
                         {INTRO_TEXT}
                     </div>
 
                     <button
                         onClick={() => setStep(2)}
-                        className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all transform hover:scale-[1.01] active:scale-95"
+                        className="btn-primary w-full py-4 text-lg"
                     >
-                        I Understand & Continue
+                        I'm In, Let's Vibe
                     </button>
                 </div>
             </div>
@@ -72,51 +83,69 @@ const ProfileSetup = ({ onProfileComplete }) => {
 
     if (step === 2) {
         const answeredCount = Object.keys(answers).length;
+        const progress = (answeredCount / QUESTIONS.length) * 100;
 
         return (
-            <div className="min-h-screen flex items-center justify-center px-4">
-                <div className="w-full max-w-3xl bg-gray-900 rounded-2xl border border-gray-800 p-8">
+            <div className="min-h-screen flex items-center justify-center px-4 py-12 relative">
+                <BackgroundBlobs />
+                <div className="w-full max-w-3xl glass-card rounded-[3rem] p-8 sm:p-12 relative z-10 animate-fade-in">
 
-                    <h2 className="text-2xl font-bold text-white mb-2 text-center">
-                        Conversation Style
-                    </h2>
-
-                    <p className="text-gray-400 text-sm text-center mb-6">
-                        No right or wrong answers — just vibes.
-                    </p>
-
-                    <div className="mb-8">
-                        <div className="flex justify-between text-xs text-gray-400 mb-2">
-                            <span>Progress</span>
-                            <span>{answeredCount}/{QUESTIONS.length}</span>
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+                        <div className="text-center md:text-left">
+                            <h2 className="text-3xl font-heading font-extrabold text-white mb-2 leading-tight">
+                                Your Rhythm
+                            </h2>
+                            <p className="text-slate-400 font-medium">Just vibes. No right or wrong.</p>
                         </div>
 
-                        <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-                                style={{
-                                    width: `${(answeredCount / QUESTIONS.length) * 100}%`
-                                }}
-                            />
+                        <div className="relative group">
+                            <svg className="w-20 h-20 transform -rotate-90">
+                                <circle
+                                    cx="40"
+                                    cy="40"
+                                    r="36"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                    className="text-white/5"
+                                />
+                                <circle
+                                    cx="40"
+                                    cy="40"
+                                    r="36"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                    fill="transparent"
+                                    strokeDasharray={2 * Math.PI * 36}
+                                    strokeDashoffset={2 * Math.PI * 36 * (1 - progress / 100)}
+                                    strokeLinecap="round"
+                                    className="text-brand-primary transition-all duration-700 ease-out"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-xs font-bold text-white tracking-tighter">
+                                    {answeredCount}/{QUESTIONS.length}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="space-y-6 max-h-[55vh] overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="space-y-8 max-h-[55vh] overflow-y-auto pr-4 custom-scrollbar mb-10 py-2">
                         {QUESTIONS.map((q, index) => (
                             <div
                                 key={q.id}
-                                className="bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-2xl border border-gray-700 shadow-lg"
+                                className="group/q"
                             >
-                                <div className="flex items-start gap-3 mb-4">
-                                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-bold">
+                                <div className="flex items-center gap-4 mb-5">
+                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold transition-all duration-300 ${answers[q.id] ? 'bg-vibrant-emerald text-white shadow-lg' : 'bg-white/5 text-slate-500 border border-white/10'}`}>
                                         {index + 1}
                                     </div>
-                                    <p className="text-gray-200 font-semibold">
+                                    <p className="text-slate-200 font-bold text-lg leading-tight group-hover/q:text-white transition-colors">
                                         {q.text}
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 ml-0 md:ml-14">
                                     {q.options.map((opt) => {
                                         const isSelected = answers[q.id] === opt.id;
 
@@ -124,19 +153,16 @@ const ProfileSetup = ({ onProfileComplete }) => {
                                             <button
                                                 key={opt.id}
                                                 onClick={() => handleOptionSelect(q.id, opt.id)}
-                                                className={`relative px-4 py-3 rounded-xl text-sm text-left border transition-all duration-200
+                                                className={`relative px-6 py-4 rounded-3xl text-sm font-bold text-left border transition-all duration-300 ring-0 hover:ring-2 hover:ring-white/10
                                                 ${isSelected
-                                                        ? 'bg-blue-600 border-blue-500 text-white shadow-md scale-[1.02]'
-                                                        : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+                                                        ? 'bg-gradient-to-br from-brand-primary to-brand-secondary border-transparent text-white shadow-xl shadow-brand-primary/20 scale-[1.03] translate-x-1'
+                                                        : 'bg-white/5 border-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200'
                                                     }`}
                                             >
-                                                <span className="font-medium">
-                                                    {opt.text}
-                                                </span>
-
+                                                <span className="relative z-10">{opt.text}</span>
                                                 {isSelected && (
-                                                    <span className="absolute top-2 right-3 text-xs opacity-80">
-                                                        ✓
+                                                    <span className="absolute top-1/2 -translate-y-1/2 right-4 text-lg">
+                                                        ✨
                                                     </span>
                                                 )}
                                             </button>
@@ -147,17 +173,17 @@ const ProfileSetup = ({ onProfileComplete }) => {
                         ))}
                     </div>
 
-                    <div className="mt-8 pt-4 border-t border-gray-800">
+                    <div className="pt-8 border-t border-white/5">
                         <button
                             onClick={() => setStep(3)}
                             disabled={!isQuestionsComplete}
-                            className={`w-full py-3.5 font-bold rounded-xl transition-all transform
+                            className={`w-full py-4 text-lg font-bold rounded-[2rem] transition-all duration-300 transform
                             ${isQuestionsComplete
-                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:scale-[1.01]'
-                                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                                    ? 'bg-gradient-to-r from-brand-primary to-brand-secondary text-white shadow-2xl shadow-brand-primary/30 hover:scale-[1.02] active:scale-[0.98]'
+                                    : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5 opacity-50'
                                 }`}
                         >
-                            {isQuestionsComplete ? 'Continue →' : 'Answer all questions'}
+                            {isQuestionsComplete ? 'Step Closer' : 'Find Your Vibes'}
                         </button>
                     </div>
                 </div>
@@ -166,68 +192,82 @@ const ProfileSetup = ({ onProfileComplete }) => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-gray-900 p-8 rounded-2xl shadow-2xl border border-gray-800">
+        <div className="min-h-screen flex items-center justify-center p-4 relative">
+            <BackgroundBlobs />
+            <div className="w-full max-w-md glass-card p-10 sm:p-12 rounded-[3.5rem] relative z-10 animate-fade-in shadow-2xl">
 
-                <h2 className="text-2xl font-bold text-white mb-2 text-center">
-                    Almost There
-                </h2>
+                <div className="text-center mb-10">
+                    <div className="inline-block px-4 py-1.5 bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-[10px] font-bold uppercase tracking-[0.2em] rounded-full mb-6">
+                        Almost There
+                    </div>
+                    <h2 className="text-4xl font-heading font-extrabold text-white mb-3">
+                        Who Are You?
+                    </h2>
+                    <p className="text-slate-400 font-medium">Session identity for this cycle.</p>
+                </div>
 
-                <p className="text-gray-400 text-sm text-center mb-8">
-                    Set a temporary identity for this session.
-                </p>
+                <form onSubmit={handleSubmit} className="space-y-8">
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-
-                    <div>
-                        <label className="block text-gray-400 text-xs uppercase font-bold mb-2">
-                            Nickname <span className="text-red-500">*</span>
+                    <div className="group">
+                        <label className="block text-slate-500 text-[10px] uppercase font-black tracking-widest mb-3 ml-2 group-focus-within:text-brand-primary transition-colors">
+                            Nickname <span className="text-brand-accent">*</span>
                         </label>
-                        <input
-                            type="text"
-                            name="nickname"
-                            value={formData.nickname}
-                            onChange={handleInputChange}
-                            className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition placeholder-gray-600"
-                            placeholder="ex: NeonTraveller"
-                            maxLength={20}
-                            autoComplete="off"
-                        />
-                        <p className="text-gray-600 text-xs mt-1 text-right">
-                            {formData.nickname.length}/20
-                        </p>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                name="nickname"
+                                value={formData.nickname}
+                                onChange={handleInputChange}
+                                className="w-full glass-input text-white rounded-3xl px-6 py-4 placeholder-slate-700 font-bold group-focus-within:ring-4 group-focus-within:ring-brand-primary/10 transition-all"
+                                placeholder="ex: Orbit"
+                                maxLength={20}
+                                autoComplete="off"
+                            />
+                            <div className="absolute top-1/2 -translate-y-1/2 right-6">
+                                <span className={`text-[10px] font-black ${formData.nickname.length >= 3 ? 'text-vibrant-emerald' : 'text-slate-600'}`}>
+                                    {formData.nickname.length}/20
+                                </span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-gray-400 text-xs uppercase font-bold mb-2">
-                            Bio <span className="text-gray-600">(Optional)</span>
+                    <div className="group">
+                        <label className="block text-slate-500 text-[10px] uppercase font-black tracking-widest mb-3 ml-2 group-focus-within:text-brand-primary transition-colors">
+                            Bio <span className="text-slate-700 italic font-medium">(Optional)</span>
                         </label>
-                        <textarea
-                            name="bio"
-                            value={formData.bio}
-                            onChange={handleInputChange}
-                            rows={3}
-                            className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 transition placeholder-gray-600 resize-none"
-                            placeholder="Short & sweet..."
-                            maxLength={120}
-                        />
-                        <p className="text-gray-600 text-xs mt-1 text-right">
-                            {formData.bio.length}/120
-                        </p>
+                        <div className="relative">
+                            <textarea
+                                name="bio"
+                                value={formData.bio}
+                                onChange={handleInputChange}
+                                rows={3}
+                                className="w-full glass-input text-white rounded-[2rem] px-6 py-5 placeholder-slate-700 font-medium resize-none group-focus-within:ring-4 group-focus-within:ring-brand-primary/10 transition-all text-sm leading-relaxed"
+                                placeholder="Signal your frequency..."
+                                maxLength={120}
+                            />
+                            <div className="absolute bottom-4 right-6 text-[10px] font-black text-slate-600">
+                                {formData.bio.length}/120
+                            </div>
+                        </div>
                     </div>
 
                     {error && (
-                        <div className="p-3 bg-red-900/30 border border-red-800/50 rounded text-red-400 text-sm text-center">
+                        <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-rose-400 text-xs font-bold text-center animate-shake">
                             {error}
                         </div>
                     )}
 
                     <button
                         type="submit"
-                        className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg shadow-green-900/30 transition transform active:scale-95"
+                        className="btn-primary w-full py-5 text-xl relative group overflow-hidden"
                     >
-                        Enter Chat
+                        <span className="relative z-10">Ignite Conversation</span>
+                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                     </button>
+
+                    <p className="text-[10px] text-slate-500 text-center uppercase tracking-widest font-black opacity-50">
+                        Anonymous. Temporary. Secure.
+                    </p>
                 </form>
             </div>
         </div>

@@ -1,12 +1,12 @@
 import User from './components/User';
 
 function App() {
-    return <User />;
+    return (
+        <div className="min-h-screen relative selection:bg-brand-primary/30">
+            <div className="noise-overlay" />
+            <User />
+        </div>
+    );
 }
 
 export default App;
-
-// import ChatPage from "./components/ChatPage";
-
-// function App() {
-//     return <ChatPage />;

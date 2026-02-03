@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const http = require("http");
+const https = require("https");
 const WebSocket = require("ws");
 require("dotenv").config();
 
@@ -62,7 +63,6 @@ async function handleQueueConnection(ws, req) {
             const message = JSON.parse(data);
             if (message.type === "join_queue") {
                 userData = message.payload;
-                // userData has { deviceId, userId, nickname, ... }
                 const userJson = JSON.stringify(userData);
 
                 await redis.zadd(QUEUE_KEY, { score: Date.now() / 1000, member: userJson });
@@ -70,7 +70,6 @@ async function handleQueueConnection(ws, req) {
 
                 pollInterval = setInterval(async () => {
                     try {
-                        // Check for match using userId
                         const targetId = userData.userId || userData.deviceId;
                         const matchId = await redis.hget(DEVICE_MATCH_MAP, targetId);
 
@@ -99,23 +98,11 @@ async function handleQueueConnection(ws, req) {
     ws.on("close", async () => {
         if (pollInterval) clearInterval(pollInterval);
         if (userData) {
-            // Only remove from queue if NOT matched yet.
-            // If matchId exists in DEVICE_MATCH_MAP, it means they were matched while they were polling.
             const targetId = userData.userId || userData.deviceId;
             const matchId = await redis.hget(DEVICE_MATCH_MAP, targetId);
             if (!matchId) {
                 const userJson = JSON.stringify(userData);
-                // We must be careful to remove the EXACT member string.
-                // However, user attributes might have slight serialization diffs if not careful.
-                // Since we stored exactly `JSON.stringify(userData)` in `message.payload`, we use that.
-
-                // Also double check strictly if they are still in queue to avoid race conditions?
                 await redis.zrem(QUEUE_KEY, userJson);
-                // console.log(`[Queue] Removed user ${userData.nickname} from queue on disconnect.`);
-            } else {
-                // If they HAVE a matchId, do NOT remove from queue here, 
-                // because the matching service already removed them from queue (zrem) when creating the match.
-                // Doing nothing is correct.
             }
         }
     });
@@ -127,11 +114,8 @@ wss.on("connection", (ws, req) => {
     const deviceId = url.searchParams.get("deviceId");
     const userId = url.searchParams.get("userId") || deviceId || "anon-" + Math.random();
 
-    if (!chatSessions[matchId]) {
-        chatSessions[matchId] = {};
-    }
+    if (!chatSessions[matchId]) { chatSessions[matchId] = {}; }
 
-    // Use userId as the session key
     chatSessions[matchId][userId] = ws;
     console.log(`[WebSocket] User ${userId} (Device: ${deviceId}) joined match ${matchId}`);
 
@@ -159,7 +143,6 @@ wss.on("connection", (ws, req) => {
         }
     });
 
-    // Heartbeat to keep connections alive
     const heartbeatInterval = setInterval(() => {
         wss.clients.forEach((ws) => {
             if (ws.readyState === WebSocket.OPEN) {
@@ -168,22 +151,14 @@ wss.on("connection", (ws, req) => {
         });
     }, 30000);
 
-    wss.on("close", () => {
-        clearInterval(heartbeatInterval);
-    });
+    wss.on("close", () => { clearInterval(heartbeatInterval); });
 
-    ws.on("close", () => {
-        // Treat ALL disconnects as permanent to ensure privacy and data removal.
-        // Since the frontend generates a new UserID on refresh, reconnection isn't possible anyway.
-        // This ensures usernames/bio are wiped from Redis immediately upon exit/refresh.
-        handleDisconnect(matchId, userId, true);
-    });
+    ws.on("close", () => { handleDisconnect(matchId, userId, true); });
 
     function handleDisconnect(mId, uId, permanent) {
         if (chatSessions[mId] && chatSessions[mId][uId]) {
             console.log(`User ${uId} left match ${mId}`);
 
-            // Notify partner
             for (const [id, socket] of Object.entries(chatSessions[mId])) {
                 if (id !== uId && socket.readyState === WebSocket.OPEN) {
                     socket.send(JSON.stringify({
@@ -193,13 +168,10 @@ wss.on("connection", (ws, req) => {
                 }
             }
 
-            // Always cleanup Redis data
             cleanupMatchData(mId, [uId]);
             delete chatSessions[mId][uId];
 
-            if (Object.keys(chatSessions[mId]).length === 0) {
-                delete chatSessions[mId];
-            }
+            if (Object.keys(chatSessions[mId]).length === 0) { delete chatSessions[mId]; }
         }
     }
 });
@@ -209,11 +181,10 @@ processQueue();
 const WS_SERVER_URL = process.env.WS_SERVER_URL;
 if (WS_SERVER_URL) {
     setInterval(() => {
-        http.get(WS_SERVER_URL, (res) => {
+        const client = WS_SERVER_URL.startsWith('https') ? https : http;
+        client.get(WS_SERVER_URL, (res) => {
             console.log(`[KeepAlive] Pinged WS Server: ${res.statusCode}`);
-        }).on('error', (e) => {
-            console.error(`[KeepAlive] Ping Error: ${e.message}`);
-        });
+        }).on('error', (e) => { console.error(`[KeepAlive] Ping Error: ${e.message}`); });
     }, 5 * 60 * 1000);
 }
 

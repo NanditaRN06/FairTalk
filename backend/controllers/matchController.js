@@ -1,4 +1,3 @@
-// Match controller - handles matching logic
 exports.createMatch = (req, res) => {
     try {
         res.json({ message: "Match created" });

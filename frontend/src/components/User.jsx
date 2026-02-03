@@ -34,17 +34,13 @@ function User() {
         setHandoffPayload(null);
 
         try {
-            // Keep checks based on deviceId for anti-spam/bans
             const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
             const eligibilityData = await response.json();
-
-            // Generate a fresh User ID for this session/match attempt
-            // This allows multiple 'users' (tabs) on the same device/browser to match
             const sessionUserId = crypto.randomUUID();
 
             const payload = {
                 deviceId,
-                userId: sessionUserId, // New session ID
+                userId: sessionUserId,
                 gender: userData?.gender || 'unknown',
                 nickname: profile.nickname,
                 eligible: eligibilityData.eligible === true
@@ -86,12 +82,26 @@ function User() {
 
     if (!showProfileSetup) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans">
-                <div className="bg-gray-800 text-white p-8 rounded-xl shadow-2xl text-center space-y-6 max-w-md w-full border border-gray-700">
-                    <h1 className="text-2xl font-bold text-green-400 tracking-wide">Identity Verified</h1>
-                    <span className="inline-block px-3 py-1 bg-green-900/30 text-green-400 text-xs rounded-full border border-green-800 animate-pulse">
-                        Redirecting to Profile...
-                    </span>
+            <div className="min-h-screen flex items-center justify-center p-4">
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-vibrant-emerald/20 rounded-full blur-[120px] animate-pulse-slow"></div>
+                </div>
+
+                <div className="glass-card p-10 rounded-[3rem] text-center max-w-sm w-full relative z-10 animate-fade-in shadow-[0_0_50px_rgba(16,185,129,0.15)] border-vibrant-emerald/20">
+                    <div className="w-24 h-24 bg-gradient-to-br from-vibrant-emerald to-emerald-600 rounded-3xl flex items-center justify-center text-5xl mx-auto mb-8 shadow-2xl shadow-vibrant-emerald/40 rotate-12 group hover:rotate-0 transition-transform duration-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+
+                    <h1 className="text-3xl font-heading font-extrabold text-white mb-3 tracking-tight">Verified!</h1>
+                    <p className="text-slate-400 font-medium mb-10 leading-relaxed">You're real. Let's get you set up for the space.</p>
+
+                    <div className="flex items-center justify-center gap-3">
+                        <div className="w-2 h-2 bg-vibrant-emerald rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-vibrant-emerald rounded-full animate-bounce [animation-delay:0.2s]"></div>
+                        <div className="w-2 h-2 bg-vibrant-emerald rounded-full animate-bounce [animation-delay:0.4s]"></div>
+                    </div>
                 </div>
             </div>
         );
@@ -102,10 +112,16 @@ function User() {
     if (handoffPayload && !searching && !enteredChat) {
         if (!handoffPayload.eligible) {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-                    <div className="p-8 bg-gray-800 rounded-xl border border-red-700 text-center">
-                        <h2 className="text-xl text-red-500 font-bold mb-4">Not Eligible</h2>
-                        <p>You have reached your daily limit or are blocked.</p>
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="glass-card p-10 rounded-[3rem] text-center max-w-md w-full relative z-10 animate-fade-in border-vibrant-rose/30 shadow-[0_0_50px_rgba(244,63,94,0.1)]">
+                        <div className="w-24 h-24 bg-vibrant-rose/10 rounded-full flex items-center justify-center text-4xl mx-auto mb-8 text-vibrant-rose border border-vibrant-rose/20 shadow-inner">
+                            ✕
+                        </div>
+                        <h2 className="text-3xl font-heading font-extrabold text-white mb-4 tracking-tight">Access Paused</h2>
+                        <p className="text-slate-400 font-medium leading-relaxed px-4">
+                            You've high-fived the daily limit or your signal was a bit static today.
+                            <br /><span className="text-slate-300">Try again after some rest tomorrow.</span>
+                        </p>
                     </div>
                 </div>
             );
@@ -117,8 +133,8 @@ function User() {
     if (searching) {
         return (
             <MatchingQueue
-                deviceId={deviceId} // Keep for logs if needed
-                userId={handoffPayload.userId} // Pass the session User ID
+                deviceId={deviceId}
+                userId={handoffPayload.userId}
                 profileData={profileData}
                 onMatchFound={handleMatchFound}
             />
@@ -126,16 +142,14 @@ function User() {
     }
 
     if (enteredChat) {
-        // Determine partner name logic
-        // We compare against OUR userId now
         const myUserId = handoffPayload.userId;
         const isUserA = matchInfo.userA.userId === myUserId;
         const partnerName = isUserA ? matchInfo.userB.nickname : matchInfo.userA.nickname;
 
         return (
             <ChatPage
-                deviceId={deviceId} // Legacy prop, maybe unused now
-                userId={myUserId}   // New prop for socket connection
+                deviceId={deviceId}
+                userId={myUserId}
                 matchId={matchInfo.matchId}
                 partnerName={partnerName}
                 onLeave={handleLeaveChat}
@@ -144,8 +158,14 @@ function User() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans">
-            <div className="text-green-500 animate-pulse font-bold">Processing...</div>
+        <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-4 border-white/5 border-t-brand-primary animate-spin"></div>
+                    <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full"></div>
+                </div>
+                <div className="text-brand-primary font-heading font-bold text-sm tracking-[0.2em] uppercase animate-pulse">Initializing Space...</div>
+            </div>
         </div>
     );
 }

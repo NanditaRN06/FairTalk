@@ -2,7 +2,7 @@ const axios = require('axios');
 
 const MIN_CONFIDENCE = 0.85;
 
-const LUXAND_API_URL = 'https://api.luxand.cloud/photo/detect';
+const LUXAND_API_URL = process.env.AI_API;
 const API_TOKEN = process.env.LUXAND_API_TOKEN;
 
 const verifyImage = async (imageBuffer) => {

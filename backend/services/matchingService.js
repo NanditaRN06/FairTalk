@@ -140,19 +140,12 @@ async function processQueue() {
                     const userB = candB.obj;
                     const idB = userB.userId || userB.deviceId;
 
-                    // Prevent matching with self
-                    if (idA === idB) {
-                        // console.warn(`[Matching] Skip self-match: ${userA.nickname}`);
-                        continue;
-                    }
+                    if (idA === idB) { continue; }
 
-                    // Check if already in active session (prevent double matching)
                     const isActiveA = await redis.sismember(ACTIVE_SESSIONS_KEY, idA);
                     const isActiveB = await redis.sismember(ACTIVE_SESSIONS_KEY, idB);
 
-                    if (isActiveA || isActiveB) {
-                        continue;
-                    }
+                    if (isActiveA || isActiveB) { continue; }
 
                     const res = calculateMatchScore(userA, userB, currentTime, candB.score, queueLen);
                     if (res && res.score > maxScore) {
@@ -185,7 +178,6 @@ async function processQueue() {
                     pipeline.sadd(ACTIVE_SESSIONS_KEY, idB);
 
                     pipeline.set(`${MATCH_SESSION_PREFIX}${matchId}`, JSON.stringify(matchData), { ex: 3600 });
-                    // Store match against userId so client polling finds it
                     pipeline.hset(DEVICE_MATCH_MAP, { [idA]: matchId });
                     pipeline.hset(DEVICE_MATCH_MAP, { [idB]: matchId });
 
