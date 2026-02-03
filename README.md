@@ -2,6 +2,8 @@
 
 FairTalk is a real-time, AI-verified chat platform designed to connect people based on personality compatibility and fairness.
 
+> **Live Deployment:** [https://websocket-server-ihw6.onrender.com/](https://websocket-server-ihw6.onrender.com/)
+
 ## 📚 Documentation
 
 The full documentation for FairTalk is split into detailed guides:
