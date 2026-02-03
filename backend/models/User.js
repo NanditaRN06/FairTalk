@@ -5,7 +5,9 @@ const UserSchema = new mongoose.Schema({
     gender: { type: String },
     lastVerified: { type: Date, default: Date.now },
     dailyMatches: { type: Number, default: 0 },
-    blocked: { type: Boolean, default: false }
+    blocked: { type: Boolean, default: false },
+    reportsCount: { type: Number, default: 0 }, // Total reports received
+    reportScore: { type: Number, default: 0 }   // Soft signal for matching logic (0-100)
 });
 
 module.exports = mongoose.model('User', UserSchema);
