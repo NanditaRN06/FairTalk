@@ -76,6 +76,37 @@ function User() {
         window.location.reload();
     };
 
+    const handleNextMatch = async () => {
+        try {
+            // Re-verify eligibility (Requirement 5.1 & Cooldowns) before next match
+            const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
+            const eligibilityData = await response.json();
+
+            if (!eligibilityData.eligible) {
+                // If not eligible (limit or cooldown), reset flow to show the error state
+                setHandoffPayload({
+                    eligible: false,
+                    message: eligibilityData.message,
+                    reason: eligibilityData.reason
+                });
+                setMatchInfo(null);
+                setEnteredChat(false);
+                setSearching(false);
+                return;
+            }
+
+            // If eligible, proceed to queue
+            setMatchInfo(null);
+            setEnteredChat(false);
+            setSearching(true);
+
+        } catch (err) {
+            console.error('Failed to check eligibility for next match:', err);
+            // Default to safe behavior (refresh session) on network error
+            handleLeaveChat();
+        }
+    };
+
     if (!isVerified) {
         return <CameraVerification onVerificationComplete={handleVerificationComplete} />;
     }
@@ -121,6 +152,7 @@ function User() {
                         <p className="text-slate-400 font-medium leading-relaxed px-4">
                             You've high-fived the daily limit or your signal was a bit static today.
                             <br /><span className="text-slate-300">Try again after some rest tomorrow.</span>
+                            {handoffPayload.message && <div className="mt-4 text-xs italic opacity-75">{handoffPayload.message}</div>}
                         </p>
                     </div>
                 </div>
@@ -136,6 +168,7 @@ function User() {
                 deviceId={deviceId}
                 userId={handoffPayload.userId}
                 profileData={profileData}
+                gender={userData?.gender}
                 onMatchFound={handleMatchFound}
             />
         );
@@ -153,6 +186,7 @@ function User() {
                 matchId={matchInfo.matchId}
                 partnerName={partnerName}
                 onLeave={handleLeaveChat}
+                onNextMatch={handleNextMatch}
             />
         );
     }

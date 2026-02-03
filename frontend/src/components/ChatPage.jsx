@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-export default function ChatPage({ deviceId, userId, matchId, partnerName, onLeave }) {
+export default function ChatPage({ deviceId, userId, matchId, partnerName, onLeave, onNextMatch }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [connected, setConnected] = useState(false);
@@ -75,6 +75,13 @@ export default function ChatPage({ deviceId, userId, matchId, partnerName, onLea
             ws.current.send(JSON.stringify({ action: "leave" }));
         }
         onLeave();
+    };
+
+    const handleNext = () => {
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            ws.current.send(JSON.stringify({ action: "leave" }));
+        }
+        onNextMatch();
     };
 
     useEffect(() => {
@@ -192,6 +199,12 @@ export default function ChatPage({ deviceId, userId, matchId, partnerName, onLea
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                             </svg>
+                        </button>
+                        <button
+                            onClick={handleNext}
+                            className="bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white px-5 py-2.5 rounded-2xl border border-brand-primary/20 transition-all font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-brand-primary/5 mr-2"
+                        >
+                            Next Match
                         </button>
                         <button
                             onClick={handleExit}

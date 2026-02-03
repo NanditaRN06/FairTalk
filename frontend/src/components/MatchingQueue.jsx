@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-const MatchingQueue = ({ deviceId, userId, profileData, onMatchFound }) => {
+const MatchingQueue = ({ deviceId, userId, profileData, gender, onMatchFound }) => {
     const [status, setStatus] = useState("initializing");
     const [seconds, setSeconds] = useState(0);
     const [showRelaxModal, setShowRelaxModal] = useState(false);
@@ -38,6 +38,8 @@ const MatchingQueue = ({ deviceId, userId, profileData, onMatchFound }) => {
                     userId,
                     nickname: profileData.nickname,
                     bio: profileData.bio,
+                    gender: gender,
+                    genderPreference: profileData.genderPreference,
                     personalityAnswers: profileData.personalityAnswers
                 }
             }));

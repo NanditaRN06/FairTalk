@@ -130,24 +130,6 @@
                     "text": "Matches the other person"
                 }
             ]
-        },
-        {
-            "id": "q6",
-            "text": "You want to chat with a …",
-            "options": [
-                {
-                    "id": "A",
-                    "text": "Male"
-                },
-                {
-                    "id": "B",
-                    "text": "Female"
-                },
-                {
-                    "id": "C",
-                    "text": "No preference"
-                }
-            ]
         }
     ]
 }

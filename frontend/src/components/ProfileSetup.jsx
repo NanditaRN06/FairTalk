@@ -6,7 +6,7 @@ const ProfileSetup = ({ onProfileComplete }) => {
 
     const [step, setStep] = useState(1);
     const [answers, setAnswers] = useState({});
-    const [formData, setFormData] = useState({ nickname: '', bio: '' });
+    const [formData, setFormData] = useState({ nickname: '', bio: '', genderPreference: 'any' });
     const [error, setError] = useState('');
 
     const handleOptionSelect = (qId, optionId) => {
@@ -55,6 +55,7 @@ const ProfileSetup = ({ onProfileComplete }) => {
         onProfileComplete({
             nickname,
             bio: formData.bio.trim(),
+            genderPreference: formData.genderPreference,
             personalityAnswers: answers
         });
     };
@@ -269,6 +270,27 @@ const ProfileSetup = ({ onProfileComplete }) => {
                             <div className="absolute bottom-4 right-6 text-[10px] font-black text-slate-600">
                                 {formData.bio.length}/120
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="group">
+                        <label className="block text-slate-500 text-[10px] uppercase font-black tracking-widest mb-3 ml-2 group-focus-within:text-brand-primary transition-colors">
+                            I want to talk to...
+                        </label>
+                        <div className="grid grid-cols-3 gap-3">
+                            {['any', 'male', 'female'].map((pref) => (
+                                <button
+                                    key={pref}
+                                    type="button"
+                                    onClick={() => setFormData(p => ({ ...p, genderPreference: pref }))}
+                                    className={`py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${formData.genderPreference === pref
+                                        ? 'bg-brand-primary border-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                                        : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'
+                                        }`}
+                                >
+                                    {pref === 'any' ? 'Everyone' : pref}
+                                </button>
+                            ))}
                         </div>
                     </div>
 

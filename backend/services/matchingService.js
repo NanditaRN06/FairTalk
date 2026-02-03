@@ -43,7 +43,7 @@ function calculateMatchScore(userA, userB, currentTime, joinTimeB, queueSize) {
         return null;
     }
 
-    const qAttrs = ["q1", "q2", "q3", "q4", "q5", "q6"];
+    const qAttrs = ["q1", "q2", "q3", "q4", "q5"];
     let exactMatches = 0;
 
     for (const q of qAttrs) {
@@ -152,6 +152,20 @@ async function processQueue() {
 
                     if (idA === idB) { continue; }
 
+                    // Requirement 3.2: Gender Filtering
+                    const prefA = userA.genderPreference || 'any';
+                    const prefB = userB.genderPreference || 'any';
+                    const genderA = userA.gender;
+                    const genderB = userB.gender;
+
+                    const matchGenderA = (prefA === 'any' || prefA === genderB);
+                    const matchGenderB = (prefB === 'any' || prefB === genderA);
+
+                    if (!matchGenderA || !matchGenderB) {
+                        // console.log(`[Matching] Gender mismatch: ${userA.nickname}(to:${prefA}) vs ${userB.nickname}(to:${prefB})`);
+                        continue;
+                    }
+
                     const isActiveA = await redis.sismember(ACTIVE_SESSIONS_KEY, idA);
                     const isActiveB = await redis.sismember(ACTIVE_SESSIONS_KEY, idB);
 
@@ -175,8 +189,8 @@ async function processQueue() {
                     const matchId = uuidv4();
                     const matchData = {
                         matchId,
-                        userA: { userId: idA, deviceId: userA.deviceId, nickname: userA.nickname },
-                        userB: { userId: idB, deviceId: userB.deviceId, nickname: userB.nickname },
+                        userA: { userId: idA, deviceId: userA.deviceId, nickname: userA.nickname, gender: userA.gender },
+                        userB: { userId: idB, deviceId: userB.deviceId, nickname: userB.nickname, gender: userB.gender },
                         reason: bestReason,
                         timestamp: currentTime
                     };
@@ -194,6 +208,28 @@ async function processQueue() {
                     pipeline.publish(MATCH_CHANNEL, JSON.stringify({ type: "match_found", payload: matchData }));
 
                     await pipeline.exec();
+
+                    // Requirement 5.1 & 3.3: Persist match metadata to MongoDB
+                    try {
+                        const User = require('../models/User');
+                        const updateMatchStats = async (dId) => {
+                            await User.findOneAndUpdate(
+                                { deviceId: dId },
+                                {
+                                    $inc: { dailyMatches: 1 },
+                                    $set: { lastMatchAt: new Date() }
+                                }
+                            );
+                        };
+                        await Promise.all([
+                            updateMatchStats(userA.deviceId),
+                            updateMatchStats(userB.deviceId)
+                        ]);
+                        console.log(`[Persistence] Updated match stats for ${userA.nickname} & ${userB.nickname}`);
+                    } catch (mongoErr) {
+                        console.error("[Persistence] Failed to update match stats:", mongoErr.message);
+                    }
+
                     console.log(`[MatchingService] MATCH EXECUTED: ${userA.nickname} --- ${userB.nickname}`);
                     break;
                 }

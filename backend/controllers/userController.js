@@ -21,8 +21,36 @@ const checkEligibility = async (req, res) => {
             return res.json({ eligible: false, message: 'User is blocked' });
         }
 
+        // Daily Reset Logic
+        const now = new Date();
+        const lastMatch = user.lastMatchAt ? new Date(user.lastMatchAt) : null;
+
+        if (lastMatch && (
+            now.getFullYear() !== lastMatch.getFullYear() ||
+            now.getMonth() !== lastMatch.getMonth() ||
+            now.getDate() !== lastMatch.getDate()
+        )) {
+            user.dailyMatches = 0;
+            await user.save();
+        }
+
         if (user.dailyMatches >= DAILY_LIMIT) {
-            return res.json({ eligible: false, message: 'Daily limit reached' });
+            return res.json({
+                eligible: false,
+                reason: 'LIMIT_REACHED',
+                message: 'Daily limit reached. Resets at midnight.'
+            });
+        }
+
+        // Cooldown Logic (1 minute)
+        const COOLDOWN_MS = 60 * 1000;
+        if (lastMatch && (now.getTime() - lastMatch.getTime() < COOLDOWN_MS)) {
+            const remaining = Math.ceil((COOLDOWN_MS - (now.getTime() - lastMatch.getTime())) / 1000);
+            return res.json({
+                eligible: false,
+                reason: 'COOLDOWN',
+                message: `Cooldown active. Please wait ${remaining}s.`
+            });
         }
 
         return res.json({ eligible: true });
