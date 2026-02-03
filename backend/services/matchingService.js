@@ -1,16 +1,17 @@
-const Redis = require("ioredis");
+const { Redis } = require("@upstash/redis");
 const { v4: uuidv4 } = require("uuid");
 
-// --- Configuration ---
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-const redis = new Redis(REDIS_URL);
+const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
 const QUEUE_KEY = "waiting_queue";
 const ACTIVE_SESSIONS_KEY = "active_sessions";
 const MATCH_CHANNEL = "matches";
 const MATCH_SESSION_PREFIX = "match_session:";
 const DEVICE_MATCH_MAP = "device_match_map";
 
-// --- Matching Logic Constants ---
 const WEIGHT_QUESTION = 2.0;
 const WEIGHT_BIO = 1.5;
 const WEIGHT_FAIRNESS = 0.05;
@@ -37,8 +38,11 @@ function extractBioTags(bioText) {
 }
 
 function calculateMatchScore(userA, userB, currentTime, joinTimeB, queueSize) {
-    // 1. SIGNAL A: Questionnaire Alignment
-    // FairTalk questions are q1, q2, q3, q4
+    if (!userA.personalityAnswers || !userB.personalityAnswers) {
+        console.warn(`[Matching] Missing personality answers for ${userA.nickname} or ${userB.nickname}`);
+        return null;
+    }
+
     const qAttrs = ["q1", "q2", "q3", "q4"];
     let exactMatches = 0;
 
@@ -50,28 +54,25 @@ function calculateMatchScore(userA, userB, currentTime, joinTimeB, queueSize) {
 
     const questionPoints = exactMatches * WEIGHT_QUESTION;
 
-    // 2. SIGNAL B: Human/Bio Alignment
     const tagsA = extractBioTags(userA.bio);
     const tagsB = extractBioTags(userB.bio);
     const sharedTags = tagsA.filter(tag => tagsB.includes(tag));
 
     const bioPoints = sharedTags.length * WEIGHT_BIO;
 
-    // 3. SIGNAL C: Fairness & Urgency
     const waitTime = Math.max(0, currentTime - joinTimeB);
     const fairnessPoints = waitTime * WEIGHT_FAIRNESS;
 
-    // 4. COMPOSITE SCORE
     const totalScore = questionPoints + bioPoints + fairnessPoints;
 
-    // 5. DYNAMIC THRESHOLDING
     let minThreshold = 0.5;
     if (queueSize >= 10) minThreshold = 6.0;
     else if (queueSize >= 4) minThreshold = 3.5;
 
+    console.log(`[MatchCalc] ${userA.nickname} + ${userB.nickname} | Q: ${questionPoints} (${exactMatches} matches) | Bio: ${bioPoints} (${sharedTags.length} shared) | Total: ${totalScore.toFixed(2)} | Threshold: ${minThreshold}`);
+
     if (totalScore < minThreshold) return null;
 
-    // 6. EXPLAINABILITY
     let strength = "Low Traffic Compatibility";
     if (questionPoints >= 4.0) strength = "Strong Personality Alignment";
     else if (bioPoints >= 1.5) strength = "Shared Interests";
@@ -82,25 +83,48 @@ function calculateMatchScore(userA, userB, currentTime, joinTimeB, queueSize) {
 }
 
 async function processQueue() {
-    console.log("[MatchingService] Background process started...");
+    console.log("[MatchingService] Background process started (REST Mode)...");
 
     setInterval(async () => {
         try {
-            const candidatesRaw = await redis.zrange(QUEUE_KEY, 0, 49, "WITHSCORES");
-            if (candidatesRaw.length < 4) return; // 2 users = 4 elements (member, score)
+            const candidatesRaw = await redis.zrange(QUEUE_KEY, 0, 49, { withScores: true });
+
+            if (!candidatesRaw || candidatesRaw.length === 0) return;
 
             const candidates = [];
+
             for (let i = 0; i < candidatesRaw.length; i += 2) {
-                const data = JSON.parse(candidatesRaw[i]);
-                candidates.push({
-                    obj: data,
-                    raw: candidatesRaw[i],
-                    score: parseFloat(candidatesRaw[i + 1])
-                });
+                const member = candidatesRaw[i];
+                const score = candidatesRaw[i + 1];
+
+                try {
+                    let data;
+                    if (typeof member === 'object' && member !== null) {
+                        data = member;
+                    } else if (typeof member === 'string') {
+                        data = JSON.parse(member);
+                    } else {
+                        continue;
+                    }
+
+                    candidates.push({
+                        obj: data,
+                        raw: member,
+                        score: score
+                    });
+                } catch (e) {
+                    console.error("[MatchingService] Parse Error:", member);
+                }
             }
 
-            const currentTime = Date.now() / 1000;
             const queueLen = candidates.length;
+            if (queueLen > 0) {
+                // console.log(`[MatchingService] Queue Size: ${queueLen}. Users: ${candidates.map(c => c.obj.nickname).join(',')}`);
+            }
+
+            if (queueLen < 2) return;
+
+            const currentTime = Date.now() / 1000;
 
             for (let i = 0; i < queueLen; i++) {
                 const candA = candidates[i];
@@ -114,7 +138,10 @@ async function processQueue() {
                     const candB = candidates[j];
                     const userB = candB.obj;
 
-                    if (userA.deviceId === userB.deviceId) continue;
+                    if (userA.deviceId === userB.deviceId) {
+                        console.warn(`[MatchingService] SKIP: ${userA.nickname} uses same DeviceID as ${userB.nickname}`);
+                        continue;
+                    }
 
                     const res = calculateMatchScore(userA, userB, currentTime, candB.score, queueLen);
                     if (res && res.score > maxScore) {
@@ -127,6 +154,7 @@ async function processQueue() {
                 if (bestMatchIdx !== -1) {
                     const candB = candidates[bestMatchIdx];
                     const userB = candB.obj;
+                    console.log(`[MatchingService] MATCH SELECTED: ${userA.nickname} & ${userB.nickname} (Score: ${maxScore})`);
 
                     const matchId = uuidv4();
                     const matchData = {
@@ -137,19 +165,20 @@ async function processQueue() {
                         timestamp: currentTime
                     };
 
-                    // Transactional Pairing
                     const pipeline = redis.pipeline();
                     pipeline.zrem(QUEUE_KEY, candA.raw);
                     pipeline.zrem(QUEUE_KEY, candB.raw);
                     pipeline.sadd(ACTIVE_SESSIONS_KEY, userA.deviceId);
                     pipeline.sadd(ACTIVE_SESSIONS_KEY, userB.deviceId);
-                    pipeline.set(`${MATCH_SESSION_PREFIX}${matchId}`, JSON.stringify(matchData), "EX", 3600);
-                    pipeline.hset(DEVICE_MATCH_MAP, userA.deviceId, matchId);
-                    pipeline.hset(DEVICE_MATCH_MAP, userB.deviceId, matchId);
+
+                    pipeline.set(`${MATCH_SESSION_PREFIX}${matchId}`, JSON.stringify(matchData), { ex: 3600 });
+                    pipeline.hset(DEVICE_MATCH_MAP, { [userA.deviceId]: matchId });
+                    pipeline.hset(DEVICE_MATCH_MAP, { [userB.deviceId]: matchId });
+
                     pipeline.publish(MATCH_CHANNEL, JSON.stringify({ type: "match_found", payload: matchData }));
 
                     await pipeline.exec();
-                    console.log(`[MatchingService] MATCH FOUND: ${userA.nickname} <-> ${userB.nickname}`);
+                    console.log(`[MatchingService] MATCH EXECUTED: ${userA.nickname} --- ${userB.nickname}`);
                     break;
                 }
             }

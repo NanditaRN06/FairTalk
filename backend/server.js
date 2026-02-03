@@ -10,6 +10,7 @@ const {
     QUEUE_KEY,
     ACTIVE_SESSIONS_KEY,
     MATCH_CHANNEL,
+    MATCH_SESSION_PREFIX,
     DEVICE_MATCH_MAP,
     processQueue,
     cleanupMatchData
@@ -30,11 +31,9 @@ app.use('/api/user', userRoutes);
 
 app.get("/", (req, res) => { res.send("Backend running"); });
 
-// Import routes
 const matchRoutes = require("./routes/matchRoutes");
 app.use("/api", matchRoutes);
 
-// WebSocket setup
 const wss = new WebSocket.Server({ noServer: true });
 const chatSessions = {};
 
@@ -56,32 +55,37 @@ server.on("upgrade", (request, socket, head) => {
 
 async function handleQueueConnection(ws, req) {
     let userData = null;
-    let currentMatchId = null;
-    const subscriber = redis.duplicate();
-    await subscriber.connect();
+    let pollInterval = null;
 
     ws.on("message", async (data) => {
         try {
             const message = JSON.parse(data);
             if (message.type === "join_queue") {
-                userData = message.payload; // { deviceId, nickname, bio, personalityAnswers }
+                userData = message.payload;
                 const userJson = JSON.stringify(userData);
 
-                await redis.zadd(QUEUE_KEY, Date.now() / 1000, userJson);
+                await redis.zadd(QUEUE_KEY, { score: Date.now() / 1000, member: userJson });
                 ws.send(JSON.stringify({ status: "queued" }));
 
-                await subscriber.subscribe(MATCH_CHANNEL);
-                subscriber.on("message", (channel, msg) => {
-                    const event = JSON.parse(msg);
-                    if (event.type === "match_found") {
-                        const matchData = event.payload;
-                        if (matchData.userA.deviceId === userData.deviceId ||
-                            matchData.userB.deviceId === userData.deviceId) {
-                            currentMatchId = matchData.matchId;
-                            ws.send(JSON.stringify({ status: "matched", match: matchData }));
+                pollInterval = setInterval(async () => {
+                    try {
+                        const matchId = await redis.hget(DEVICE_MATCH_MAP, userData.deviceId);
+                        if (matchId) {
+                            const matchData = await redis.get(`${MATCH_SESSION_PREFIX}${matchId}`);
+                            let finalMatchData = matchData;
+                            if (typeof matchData === 'string') {
+                                try { finalMatchData = JSON.parse(matchData); } catch (e) { }
+                            }
+
+                            if (ws.readyState === 1) {
+                                ws.send(JSON.stringify({ status: "matched", match: finalMatchData }));
+                            }
+                            clearInterval(pollInterval);
                         }
+                    } catch (err) {
+                        console.error("Queue Polling Error:", err);
                     }
-                });
+                }, 2000);
             }
         } catch (error) {
             console.error("Queue WS Error:", error);
@@ -89,15 +93,14 @@ async function handleQueueConnection(ws, req) {
     });
 
     ws.on("close", async () => {
+        if (pollInterval) clearInterval(pollInterval);
         if (userData) {
             const matchId = await redis.hget(DEVICE_MATCH_MAP, userData.deviceId);
             if (!matchId) {
-                // Remove from queue if not matched
                 const userJson = JSON.stringify(userData);
                 await redis.zrem(QUEUE_KEY, userJson);
             }
         }
-        await subscriber.quit();
     });
 }
 
@@ -111,7 +114,7 @@ wss.on("connection", (ws, req) => {
     }
 
     chatSessions[matchId][deviceId] = ws;
-    console.log(`Device ${deviceId} connected to match ${matchId}`);
+    console.log(`[WebSocket] Device ${deviceId} joined match ${matchId}`);
 
     ws.on("message", (data) => {
         try {
@@ -129,7 +132,8 @@ wss.on("connection", (ws, req) => {
                     }
                 }
             } else if (action === "leave") {
-                handleDisconnect(matchId, deviceId);
+                ws.isIntentionalLeave = true;
+                handleDisconnect(matchId, deviceId, true);
             }
         } catch (error) {
             console.error("WebSocket message error:", error);
@@ -137,32 +141,50 @@ wss.on("connection", (ws, req) => {
     });
 
     ws.on("close", () => {
-        handleDisconnect(matchId, deviceId);
+        if (!ws.isIntentionalLeave) {
+            handleDisconnect(matchId, deviceId, false);
+        }
     });
 
-    function handleDisconnect(mId, dId) {
+    function handleDisconnect(mId, dId, permanent) {
         if (chatSessions[mId] && chatSessions[mId][dId]) {
-            console.log(`Device ${dId} left match ${mId}`);
-            for (const [id, socket] of Object.entries(chatSessions[mId])) {
-                if (id !== dId && socket.readyState === WebSocket.OPEN) {
-                    socket.send(JSON.stringify({
-                        type: "system",
-                        event: "partner_left",
-                    }));
+            console.log(`Device ${dId} left match ${mId} (Permanent: ${permanent})`);
+
+            if (permanent) {
+                for (const [id, socket] of Object.entries(chatSessions[mId])) {
+                    if (id !== dId && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            type: "system",
+                            event: "partner_left",
+                        }));
+                    }
                 }
+
+                cleanupMatchData(mId, [dId]);
+                delete chatSessions[mId][dId];
+            } else {
+                delete chatSessions[mId][dId];
             }
-            delete chatSessions[mId][dId];
-            if (Object.keys(chatSessions[mId]).length === 0) {
+
+            if (Object.keys(chatSessions[mId]).length === 0 && permanent) {
                 delete chatSessions[mId];
             }
-            // Trigger Redis cleanup
-            cleanupMatchData(mId, [dId]);
         }
     }
 });
 
-// Start matching background process
 processQueue();
+
+const WS_SERVER_URL = process.env.WS_SERVER_URL;
+if (WS_SERVER_URL) {
+    setInterval(() => {
+        http.get(WS_SERVER_URL, (res) => {
+            console.log(`[KeepAlive] Pinged WS Server: ${res.statusCode}`);
+        }).on('error', (e) => {
+            console.error(`[KeepAlive] Ping Error: ${e.message}`);
+        });
+    }, 5 * 60 * 1000);
+}
 
 server.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });
 

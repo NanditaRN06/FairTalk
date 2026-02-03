@@ -34,7 +34,7 @@ function User() {
         setHandoffPayload(null);
 
         try {
-            const response = await fetch(`http://localhost:5000/api/user/eligibility/${deviceId}`);
+            const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
             const eligibilityData = await response.json();
 
             const payload = {

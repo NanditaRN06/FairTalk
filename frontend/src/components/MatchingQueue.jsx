@@ -12,7 +12,7 @@ const MatchingQueue = ({ deviceId, profileData, onMatchFound }) => {
     }, []);
 
     useEffect(() => {
-        const socket = new WebSocket(`ws://${window.location.hostname}:5000/ws/queue`);
+        const socket = new WebSocket(`ws://${window.location.hostname}:9000/ws/queue`);
 
         socket.onopen = () => {
             console.log("Connected to matching queue");
@@ -53,7 +53,6 @@ const MatchingQueue = ({ deviceId, profileData, onMatchFound }) => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4">
             <div className="w-full max-w-md bg-gray-800 rounded-3xl p-10 border border-gray-700 shadow-2xl text-center space-y-8 relative overflow-hidden">
-                {/* Decorative background elements */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-pulse" />
 
                 <div className="space-y-4">
