@@ -43,7 +43,7 @@ function calculateMatchScore(userA, userB, currentTime, joinTimeB, queueSize) {
         return null;
     }
 
-    const qAttrs = ["q1", "q2", "q3", "q4"];
+    const qAttrs = ["q1", "q2", "q3", "q4", "q5", "q6"];
     let exactMatches = 0;
 
     for (const q of qAttrs) {
@@ -65,11 +65,16 @@ function calculateMatchScore(userA, userB, currentTime, joinTimeB, queueSize) {
 
     const totalScore = questionPoints + bioPoints + fairnessPoints;
 
+    const isRelaxedA = userA.allowRelaxation === true;
+    const isRelaxedB = userB.allowRelaxation === true;
+
     let minThreshold = 0.5;
     if (queueSize >= 10) minThreshold = 6.0;
     else if (queueSize >= 4) minThreshold = 3.5;
 
-    console.log(`[MatchCalc] ${userA.nickname} + ${userB.nickname} | Q: ${questionPoints} (${exactMatches} matches) | Bio: ${bioPoints} (${sharedTags.length} shared) | Total: ${totalScore.toFixed(2)} | Threshold: ${minThreshold}`);
+    if (isRelaxedA) { minThreshold = Math.max(0.1, minThreshold * 0.4); }
+
+    console.log(`[MatchCalc] ${userA.nickname} + ${userB.nickname} | Q: ${questionPoints} | Bio: ${bioPoints} | Total: ${totalScore.toFixed(2)} | Threshold: ${minThreshold}${isRelaxedA ? ' (RELAXED)' : ''}`);
 
     if (totalScore < minThreshold) return null;
 
@@ -77,7 +82,12 @@ function calculateMatchScore(userA, userB, currentTime, joinTimeB, queueSize) {
     if (questionPoints >= 4.0) strength = "Strong Personality Alignment";
     else if (bioPoints >= 1.5) strength = "Shared Interests";
 
-    const reason = `This recommendation was generated because ${strength} was detected. Score: ${totalScore.toFixed(1)}`;
+    let reason = `This recommendation was generated because ${strength} was detected. Score: ${totalScore.toFixed(1)}`;
+
+    if (isRelaxedA && totalScore < (minThreshold / 0.4)) {
+        reason = "The user explicitly opted in to relaxed personality-based matching after no exact match was found.";
+        console.log(`[MatchingService] Relaxed Match Audit: ${userA.nickname} matched with ${userB.nickname} via explicit consent.`);
+    }
 
     return { score: totalScore, reason };
 }

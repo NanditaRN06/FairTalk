@@ -21,7 +21,7 @@ const ProfileSetup = ({ onProfileComplete }) => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const nickname = formData.nickname.trim();
 
@@ -38,6 +38,18 @@ const ProfileSetup = ({ onProfileComplete }) => {
         if (formData.bio.length > 120) {
             setError('Bio must be under 120 characters.');
             return;
+        }
+
+        try {
+            const res = await fetch(`http://localhost:9000/api/user/check-nickname?nickname=${encodeURIComponent(nickname)}`);
+            const data = await res.json();
+
+            if (data.taken) {
+                setError(data.message || 'This nickname is already in use in the active queue.');
+                return;
+            }
+        } catch (err) {
+            console.error('Nickname collision check failed:', err);
         }
 
         onProfileComplete({

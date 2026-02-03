@@ -89,6 +89,19 @@ async function handleQueueConnection(ws, req) {
                         console.error("Queue Polling Error:", err);
                     }
                 }, 2000);
+            } else if (message.type === "update_criteria") {
+                if (userData) {
+                    const oldUserJson = JSON.stringify(userData);
+                    userData = { ...userData, ...message.payload };
+                    const newUserJson = JSON.stringify(userData);
+
+                    await redis.zrem(QUEUE_KEY, oldUserJson);
+                    await redis.zadd(QUEUE_KEY, { score: Date.now() / 1000, member: newUserJson });
+
+                    if (message.payload.allowRelaxation) {
+                        console.log(`[Queue] Search threshold exceeded — user ${userData.nickname} consented to relaxed personality matching.`);
+                    }
+                }
             }
         } catch (error) {
             console.error("Queue WS Error:", error);
