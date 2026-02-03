@@ -30,6 +30,11 @@ const ProfileSetup = ({ onProfileComplete }) => {
             return;
         }
 
+        if (!formData.bio || formData.bio.trim().length <= 5) {
+            setError('Bio is required and must be more than 5 letters.');
+            return;
+        }
+
         if (formData.bio.length > 120) {
             setError('Bio must be under 120 characters.');
             return;
@@ -54,8 +59,12 @@ const ProfileSetup = ({ onProfileComplete }) => {
             <div className="min-h-screen flex items-center justify-center px-4 relative">
                 <BackgroundBlobs />
                 <div className="w-full max-w-xl glass-card rounded-[3rem] p-10 sm:p-12 text-center relative z-10 animate-fade-in shadow-2xl">
-                    <div className="w-20 h-20 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-3xl flex items-center justify-center text-4xl mx-auto mb-8 shadow-xl rotate-12">
-                        ✔️
+                    <div className="w-20 h-20 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl rotate-12 animate-float">
+                        <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 13.4876 3.36033 14.8911 4 16.1247L3 21L7.87531 20C9.10887 20.6397 10.5124 21 12 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 9H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 13H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
                     </div>
 
                     <h2 className="text-4xl font-heading font-extrabold text-white mb-6 leading-tight">
@@ -233,7 +242,7 @@ const ProfileSetup = ({ onProfileComplete }) => {
 
                     <div className="group">
                         <label className="block text-slate-500 text-[10px] uppercase font-black tracking-widest mb-3 ml-2 group-focus-within:text-brand-primary transition-colors">
-                            Bio <span className="text-slate-700 italic font-medium">(Optional)</span>
+                            Bio <span className="text-brand-accent">*</span>
                         </label>
                         <div className="relative">
                             <textarea

@@ -160,11 +160,17 @@ function User() {
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
             <div className="flex flex-col items-center gap-6">
-                <div className="relative">
-                    <div className="w-16 h-16 rounded-full border-4 border-white/5 border-t-brand-primary animate-spin"></div>
-                    <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full"></div>
+                <div className="relative group">
+                    <div className="w-20 h-20 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-3xl flex items-center justify-center shadow-2xl shadow-brand-primary/20 animate-float relative z-10">
+                        <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 13.4876 3.36033 14.8911 4 16.1247L3 21L7.87531 20C9.10887 20.6397 10.5124 21 12 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 9H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 13H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </div>
+                    <div className="absolute inset-x-0 -bottom-4 h-1 bg-brand-primary/20 rounded-full blur-md animate-pulse"></div>
                 </div>
-                <div className="text-brand-primary font-heading font-bold text-sm tracking-[0.2em] uppercase animate-pulse">Initializing Space...</div>
+                <div className="text-brand-primary font-heading font-black text-xs tracking-[0.4em] uppercase animate-pulse">Syncing...</div>
             </div>
         </div>
     );

@@ -91,6 +91,16 @@ const CameraVerification = ({ onVerificationComplete }) => {
 
             <div className="glass-card p-8 rounded-[2.5rem] max-w-sm w-full relative z-10 text-center">
                 <div className="mb-8">
+                    <div className="flex justify-center mb-6">
+                        <div className="w-16 h-16 bg-gradient-to-tr from-brand-primary to-brand-secondary rounded-2xl flex items-center justify-center shadow-lg shadow-brand-primary/20 rotate-3 animate-float relative">
+                            <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 13.4876 3.36033 14.8911 4 16.1247L3 21L7.87531 20C9.10887 20.6397 10.5124 21 12 21Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M8 9H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M8 13H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-vibrant-rose rounded-full animate-ping opacity-75"></div>
+                        </div>
+                    </div>
                     <h2 className="text-3xl font-heading font-bold text-white mb-2 leading-tight">Fast Pass</h2>
                     <p className="text-slate-400 text-sm font-medium">Verify your human vibes to enter.</p>
                 </div>

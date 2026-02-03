@@ -3,105 +3,149 @@
     "questions": [
         {
             "id": "q1",
-            "text": "How do you usually express yourself?",
+            "text": "When you chat, you usually …",
             "options": [
                 {
                     "id": "A",
-                    "text": "Direct"
+                    "text": "Say things directly"
                 },
                 {
                     "id": "B",
-                    "text": "Playful"
+                    "text": "Joke around"
                 },
                 {
                     "id": "C",
-                    "text": "Reflective"
+                    "text": "Think before replying"
                 },
                 {
                     "id": "D",
-                    "text": "Expressive"
+                    "text": "Talk a lot and share feelings"
                 },
                 {
                     "id": "E",
-                    "text": "Reserved"
+                    "text": "Mostly listen"
                 }
             ]
         },
         {
             "id": "q2",
-            "text": "Your preferred chat vibe?",
+            "text": "You like chats that are …",
             "options": [
                 {
                     "id": "A",
-                    "text": "Chill"
+                    "text": "Relaxed"
                 },
                 {
                     "id": "B",
-                    "text": "Energetic"
+                    "text": "Full of energy"
                 },
                 {
                     "id": "C",
-                    "text": "Deep"
+                    "text": "Serious or meaningful"
                 },
                 {
                     "id": "D",
-                    "text": "Casual"
+                    "text": "Light and casual"
                 },
                 {
                     "id": "E",
-                    "text": "Unpredictable"
+                    "text": "A mix of anything"
                 }
             ]
         },
         {
             "id": "q3",
-            "text": "How do you usually prefer to start a conversation?",
+            "text": "At the beginning of a chat, you …",
             "options": [
                 {
                     "id": "A",
-                    "text": "With a deep or thoughtful question"
+                    "text": "Ask an interesting question"
                 },
                 {
                     "id": "B",
-                    "text": "With light humor or jokes"
+                    "text": "Start with a joke"
                 },
                 {
                     "id": "C",
-                    "text": "By sharing an opinion or idea"
+                    "text": "Share what’s on your mind"
                 },
                 {
                     "id": "D",
-                    "text": "By listening first and responding slowly"
+                    "text": "Wait and respond"
                 },
                 {
                     "id": "E",
-                    "text": "Depends entirely on the other person"
+                    "text": "Let the other person lead"
                 }
             ]
         },
         {
             "id": "q4",
-            "text": "Your curiosity level?",
+            "text": "A chat feels good when it …",
             "options": [
                 {
                     "id": "A",
-                    "text": "Low-key"
+                    "text": "Stays simple"
                 },
                 {
                     "id": "B",
-                    "text": "Selective"
+                    "text": "Talks about a few clear topics"
                 },
                 {
                     "id": "C",
-                    "text": "High"
+                    "text": "Goes deeper into ideas or feelings"
                 },
                 {
                     "id": "D",
-                    "text": "Situational"
+                    "text": "Just flows naturally"
                 },
                 {
                     "id": "E",
-                    "text": "Endless"
+                    "text": "Keeps exploring new things"
+                }
+            ]
+        },
+        {
+            "id": "q5",
+            "text": "Your reply speed is usually …",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Very quick"
+                },
+                {
+                    "id": "B",
+                    "text": "Normal"
+                },
+                {
+                    "id": "C",
+                    "text": "Slow but thoughtful"
+                },
+                {
+                    "id": "D",
+                    "text": "Changes with the topic"
+                },
+                {
+                    "id": "E",
+                    "text": "Matches the other person"
+                }
+            ]
+        },
+        {
+            "id": "q6",
+            "text": "You want to chat with a …",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Male"
+                },
+                {
+                    "id": "B",
+                    "text": "Female"
+                },
+                {
+                    "id": "C",
+                    "text": "No preference"
                 }
             ]
         }
