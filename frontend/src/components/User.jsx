@@ -28,6 +28,7 @@ function User() {
 
     const handleProfileComplete = async (profile) => {
         setProfileData(profile);
+        setHandoffPayload(null);
 
         try {
             const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
