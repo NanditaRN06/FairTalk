@@ -1,20 +1,14 @@
 import { useEffect, useState } from 'react';
 import { getOrCreateDeviceId } from '../utils/identity';
-// Camera verification disabled: laptop camera not available.
-// To re-enable camera verification, uncomment the import below.
-// import CameraVerification from './CameraVerification';
+import CameraVerification from './CameraVerification';
 import ProfileSetup from './ProfileSetup';
 import EligibilityConfirmation from './EligibilityConfirmation';
 import ChatPage from './ChatPage';
 
 function User() {
     const [deviceId, setDeviceId] = useState('');
-    // Camera verification bypassed for machines without a working camera.
-    // Set to `false` to re-enable the CameraVerification step during development.
-    const [isVerified, setIsVerified] = useState(true);
+    const [isVerified, setIsVerified] = useState(false);
     const [userData, setUserData] = useState(null);
-    // We'll show the profile setup only after a test user record exists on the server.
-    // This prevents a race where eligibility is checked before the user is created.
     const [showProfileSetup, setShowProfileSetup] = useState(false);
     const [profileData, setProfileData] = useState(null);
     const [handoffPayload, setHandoffPayload] = useState(null);
@@ -25,41 +19,6 @@ function User() {
         setDeviceId(id);
         console.log('User initialized with Device ID:', id);
     }, []);
-
-    // When deviceId is available and verification is bypassed, create/upsert a test user
-    // and only then show the profile setup to avoid eligibility race conditions.
-    useEffect(() => {
-        if (!isVerified || !deviceId) return;
-
-        let cancelled = false;
-
-        const createTestUser = async () => {
-            try {
-                const apiBase = import.meta.env.VITE_API_URL || '';
-                const res = await fetch(`${apiBase}/api/user/create-test/${deviceId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gender: 'unknown' })
-                });
-
-                if (!cancelled) {
-                    if (res.ok) {
-                        setUserData({ gender: 'unknown' });
-                    } else {
-                        console.warn('create-test returned non-ok:', res.status);
-                    }
-                    setShowProfileSetup(true);
-                }
-            } catch (err) {
-                console.warn('Could not create test user:', err);
-                if (!cancelled) setShowProfileSetup(true);
-            }
-        };
-
-        createTestUser();
-
-        return () => { cancelled = true; };
-    }, [deviceId, isVerified]);
 
     const handleVerificationComplete = (data) => {
         setUserData(data);
@@ -72,8 +31,7 @@ function User() {
         setHandoffPayload(null);
 
         try {
-            const apiBase = import.meta.env.VITE_API_URL || '';
-            const response = await fetch(`${apiBase}/api/user/eligibility/${deviceId}`);
+            const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
             const eligibilityData = await response.json();
 
             const payload = {
@@ -106,11 +64,9 @@ function User() {
         window.location.reload();
     };
 
-    // Camera verification step removed for environments without a camera.
-    // Original code (commented out):
-    // if (!isVerified) {
-    //     return <CameraVerification onVerificationComplete={handleVerificationComplete} />;
-    // }
+    if (!isVerified) {
+        return <CameraVerification onVerificationComplete={handleVerificationComplete} />;
+    }
 
     if (!showProfileSetup) {
         return (

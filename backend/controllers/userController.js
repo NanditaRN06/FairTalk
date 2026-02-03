@@ -32,4 +32,37 @@ const checkEligibility = async (req, res) => {
     }
 };
 
-module.exports = { checkEligibility };
+// Dev helper: create or update a test user for environments without camera verification
+const createTestUser = async (req, res) => {
+    try {
+        const { deviceId } = req.params;
+        const { gender = 'unknown' } = req.body || {};
+
+        if (!deviceId) {
+            return res.status(400).json({ success: false, message: 'Device ID required' });
+        }
+
+        await User.findOneAndUpdate(
+            { deviceId },
+            {
+                $set: {
+                    gender,
+                    lastVerified: new Date(),
+                    blocked: false
+                },
+                $setOnInsert: {
+                    dailyMatches: 0
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        return res.json({ success: true, message: 'Test user created/updated' });
+
+    } catch (error) {
+        console.error('createTestUser Error:', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+
+module.exports = { checkEligibility, createTestUser };

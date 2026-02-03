@@ -18,6 +18,15 @@ app.use(express.json());
 app.use('/api', verificationRoutes);
 app.use('/api/user', userRoutes);
 
+// Expose simple runtime config so frontend can detect whether camera verification
+// is required in this environment.
+const cameraVerificationRequired = (process.env.CAMERA_VERIFICATION || 'true').toLowerCase() === 'true';
+app.locals.cameraVerificationRequired = cameraVerificationRequired;
+
+app.get('/api/config', (req, res) => {
+    return res.json({ cameraVerification: app.locals.cameraVerificationRequired });
+});
+
 app.get("/", (req, res) => { res.send("Backend running"); });
 
 // Import routes

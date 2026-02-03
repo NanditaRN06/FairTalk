@@ -1,190 +1,308 @@
 import { useState, useEffect, useRef } from "react";
 
-export default function ChatPage({ deviceId }) {
+export default function ChatPage({ deviceId, handoffPayload, onLeaveChat }) {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
-    const [targetDeviceId, setTargetDeviceId] = useState("");
     const [connected, setConnected] = useState(false);
-    const [chatId, setChatId] = useState(null);
-
+    const [partnerId, setPartnerId] = useState(null);
+    const [matchId, setMatchId] = useState(null);
     const ws = useRef(null);
-    const messagesEndRef = useRef(null);
 
-    const SERVER_URL = import.meta.env.VITE_WEBSOCKET_URL;
+    // Storage key for conversationsgit
+    const storageKey = `chat_${deviceId}`;
 
     useEffect(() => {
-        if (!deviceId) return;
-
-        ws.current = new WebSocket(SERVER_URL);
-
-        ws.current.onopen = () => {
-            setConnected(true);
-            ws.current.send(JSON.stringify({
-                device_id: deviceId
-            }));
-        };
-
-        ws.current.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            console.log("Received:", data);
-
-            if (data.type === "start_chat") {
-                const newChatId = data.chat_id || Date.now().toString();
-                setTargetDeviceId(data.from);
-                setChatId(newChatId);
-                ws.current.send(JSON.stringify({
-                    type: "chat_accepted",
-                    to: data.from,
-                    from: deviceId,
-                    chat_id: newChatId
-                }));
+        // Load messages from localStorage when component mounts
+        const savedMessages = localStorage.getItem(storageKey);
+        if (savedMessages) {
+            try {
+                setMessages(JSON.parse(savedMessages));
+            } catch (e) {
+                console.error("Failed to load messages from storage:", e);
             }
+        }
 
-            if (data.type === "chat_accepted") {
-                setChatId(data.chat_id);
-                setConnected(true);
-            }
-            if (data.type === "message" && data.message) {
-                setMessages(prev => [
-                    ...prev,
-                    {
-                        sender: data.from,
-                        text: data.message,
-                        type: "incoming"
-                    }
-                ]);
-            }
-        };
-
-        ws.current.onclose = (event) => {
-            console.log("WebSocket Disconnected:", event.code, event.reason);
-            setConnected(false);
-            setChatId(null);
-        };
+        // Connect to WebSocket with device ID
+        connectWebSocket();
 
         return () => {
-            ws.current?.close();
+            if (ws.current) ws.current.close();
         };
     }, [deviceId]);
 
+    // Save messages to localStorage whenever they change
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
-    const startChat = () => {
-        if (!targetDeviceId.trim()) return;
-        setMessages([]);
-        ws.current.send(JSON.stringify({
-            type: "start_chat",
-            from: deviceId,
-            to: targetDeviceId,
-            chat_id: Date.now().toString()
-        }));
+        if (messages.length > 0) {
+            localStorage.setItem(storageKey, JSON.stringify(messages));
+        }
+    }, [messages, storageKey]);
+
+    const connectWebSocket = () => {
+        try {
+            // Do not attempt to connect without a deviceId
+            if (!deviceId) {
+                console.warn('connectWebSocket: no deviceId yet, skipping connect');
+                return;
+            }
+
+            // Connect with device ID as user identifier. Use VITE_WEBSOCKET_URL if provided and valid.
+            const rawEnvWs = import.meta.env.VITE_WEBSOCKET_URL;
+            console.log('VITE_WEBSOCKET_URL=', rawEnvWs);
+            let base = null;
+            if (rawEnvWs && typeof rawEnvWs === 'string' && rawEnvWs !== 'undefined') {
+                try {
+                    // Validate URL by attempting to construct it
+                    // new URL accepts ws/wss as well
+                    /* eslint-disable no-new */
+                    new URL(rawEnvWs);
+                    /* eslint-enable no-new */
+                    base = rawEnvWs.replace(/\/$/, '');
+                } catch (e) {
+                    console.warn('VITE_WEBSOCKET_URL is invalid, falling back to current host:', rawEnvWs);
+                    base = null;
+                }
+            }
+
+            if (!base) {
+                base = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`;
+            }
+
+            // Normalize base: remove accidental 'undefined' and trailing slash issues
+            if (base.includes('undefined')) {
+                base = base.replace(/undefined/g, 'ws');
+            }
+            base = base.replace(/\/$/, '');
+
+            const separator = base.includes('?') ? '&' : '?';
+            const wsUrl = `${base}${separator}userId=${encodeURIComponent(deviceId)}`;
+            console.log('Final WebSocket URL:', wsUrl);
+            console.log('Connecting WebSocket to', wsUrl);
+            ws.current = new WebSocket(wsUrl);
+
+            ws.current.onopen = () => {
+                setConnected(true);
+                console.log("WebSocket connected with device ID:", deviceId);
+                
+                // Send location if available
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((pos) => {
+                        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+                            ws.current.send(JSON.stringify({
+                                type: "location",
+                                payload: {
+                                    latitude: pos.coords.latitude,
+                                    longitude: pos.coords.longitude,
+                                    city: "User Location",
+                                    country: "User Country"
+                                }
+                            }));
+                        }
+                    });
+                }
+            };
+
+            ws.current.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    handleWebSocketMessage(data);
+                } catch (error) {
+                    console.error("Error parsing WebSocket message:", error);
+                }
+            };
+
+            ws.current.onerror = (error) => {
+                console.error("WebSocket error:", error);
+                setConnected(false);
+            };
+
+            ws.current.onclose = () => {
+                setConnected(false);
+                console.log("WebSocket disconnected");
+            };
+        } catch (error) {
+            console.error("Failed to connect to WebSocket:", error);
+            setConnected(false);
+        }
     };
+
+    const handleWebSocketMessage = (data) => {
+        const { type, ...rest } = data;
+
+        switch (type) {
+            case "match_found":
+                console.log("Match found:", rest);
+                setMatchId(rest.matchId);
+                setPartnerId(rest.partner.userId);
+                setMessages((prev) => [
+                    ...prev,
+                    { from: "system", text: `Match found with ${rest.partner.userId}! 🎉` }
+                ]);
+                break;
+
+            case "match_started":
+                console.log("Match started:", rest);
+                setMatchId(rest.matchId);
+                setPartnerId(rest.partnerId);
+                setMessages((prev) => [
+                    ...prev,
+                    { from: "system", text: "Chat started! You can now message." }
+                ]);
+                break;
+
+            case "chat":
+                setMessages((prev) => [
+                    ...prev,
+                    { from: rest.from, text: rest.message, timestamp: rest.timestamp }
+                ]);
+                break;
+
+            case "partner_left":
+                setMessages((prev) => [
+                    ...prev,
+                    { from: "system", text: "Partner left the chat" }
+                ]);
+                setConnected(false);
+                break;
+
+            case "partner_disconnected":
+                setMessages((prev) => [
+                    ...prev,
+                    { from: "system", text: "Partner disconnected" }
+                ]);
+                break;
+
+            case "error":
+                setMessages((prev) => [
+                    ...prev,
+                    { from: "system", text: `Error: ${rest.message}` }
+                ]);
+                break;
+
+            default:
+                console.log("Unknown message type:", type);
+        }
+    };
+
     const sendMessage = () => {
-        if (!input.trim() || !chatId || !targetDeviceId) return;
+        if (!input.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN || !matchId) {
+            return;
+        }
+
+        // Send via WebSocket
         ws.current.send(JSON.stringify({
-            type: "message",
-            chat_id: chatId,
-            from: deviceId,
-            to: targetDeviceId,
-            message: input
+            type: "chat",
+            payload: { text: input }
         }));
 
-        setMessages(prev => [
+        // Add to local messages
+        setMessages((prev) => [
             ...prev,
-            {
-                sender: "You",
-                text: input,
-                type: "outgoing"
-            }
+            { from: "you", text: input, timestamp: Date.now() }
         ]);
 
         setInput("");
     };
 
+    const handleLeave = () => {
+        // Send leave message through WebSocket
+        if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+            ws.current.send(JSON.stringify({ type: "leave_chat" }));
+            ws.current.close();
+        }
+
+        // Clear local storage for this conversation
+        localStorage.removeItem(storageKey);
+
+        // Reset state
+        setMessages([]);
+        setConnected(false);
+        setMatchId(null);
+        setPartnerId(null);
+
+        // Call parent callback
+        if (onLeaveChat) {
+            onLeaveChat();
+        }
+    };
+
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center p-4">
-            <div className="w-full max-w-2xl bg-gray-800 rounded-lg shadow-xl flex flex-col h-[80vh]">
-                <div className="bg-gray-700 p-4 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-xl font-bold text-green-400">Secure P2P Chat</h1>
-                        <p className="text-xs text-gray-300">
-                            Device ID: <span className="font-mono select-all">{deviceId}</span>
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${connected ? "bg-green-500" : "bg-red-500 animate-pulse"}`} />
-                        <span className="text-sm">{connected ? "Online" : "Offline"}</span>
-                    </div>
+        <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
+            <div className="w-full max-w-md bg-gray-800 rounded-lg shadow-xl p-6 space-y-4">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-green-400">FairTalk Chat</h1>
+                    <p className="text-xs text-gray-500 mt-1">Device ID: {deviceId.substring(0, 12)}...</p>
                 </div>
 
-                <div className="p-4 border-b border-gray-600">
-                    <label className="text-xs uppercase text-gray-400">Target Device ID</label>
-                    <div className="flex gap-2 mt-1">
-                        <input
-                            value={targetDeviceId}
-                            onChange={e => setTargetDeviceId(e.target.value)}
-                            placeholder="Paste partner device ID"
-                            className="flex-1 bg-gray-900 border border-gray-600 rounded px-3 py-2 text-white font-mono"
-                        />
-                        <button
-                            onClick={startChat}
-                            disabled={!connected || chatId}
-                            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-4 py-2 rounded"
-                        >
-                            {chatId ? "Chat Active" : "Start Chat"}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {messages.length === 0 && (
-                        <p className="text-center text-gray-500 mt-10">
-                            Start a chat to begin messaging
-                        </p>
+                <div className="flex items-center gap-2">
+                    <div
+                        className={`w-3 h-3 rounded-full ${
+                            connected ? "bg-green-500 animate-pulse" : "bg-red-500"
+                        }`}
+                    ></div>
+                    <span className="text-gray-300 text-sm">
+                        {connected ? "Connected" : "Disconnected"}
+                    </span>
+                    {partnerId && (
+                        <span className="ml-auto text-xs text-blue-400">
+                            With: {partnerId.substring(0, 8)}...
+                        </span>
                     )}
+                </div>
 
-                    {messages.map((msg, idx) => (
-                        <div
-                            key={idx}
-                            className={`flex flex-col ${msg.type === "outgoing" ? "items-end" : "items-start"}`}
-                        >
-                            <div className={`px-4 py-2 rounded-lg max-w-[75%] ${msg.type === "outgoing"
-                                ? "bg-green-600 rounded-br-none"
-                                : "bg-gray-700 rounded-bl-none"
-                                }`}>
+                <div className="h-64 bg-gray-700 rounded-lg overflow-y-auto p-4 space-y-2">
+                    {messages.length === 0 ? (
+                        <p className="text-gray-400 text-center text-sm">
+                            No messages yet. Waiting for match...
+                        </p>
+                    ) : (
+                        messages.map((msg, idx) => (
+                            <div
+                                key={idx}
+                                className={`p-3 rounded-lg text-sm ${
+                                    msg.from === "you"
+                                        ? "bg-blue-600 text-white text-right ml-auto max-w-xs"
+                                        : msg.from === "system"
+                                        ? "bg-yellow-900/50 text-yellow-300 text-center text-xs"
+                                        : "bg-gray-600 text-white mr-auto max-w-xs"
+                                }`}
+                            >
+                                {msg.from !== "you" && msg.from !== "system" && (
+                                    <p className="text-xs font-semibold text-gray-300 mb-1">
+                                        {msg.from.substring(0, 8)}...
+                                    </p>
+                                )}
                                 {msg.text}
                             </div>
-                            <span className="text-[10px] text-gray-400 mt-1 font-mono">
-                                {msg.sender}
-                            </span>
-                        </div>
-                    ))}
-                    <div ref={messagesEndRef} />
+                        ))
+                    )}
                 </div>
 
-                <div className="p-4 bg-gray-700 flex gap-2">
+                <div className="flex gap-2">
                     <input
+                        type="text"
                         value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && sendMessage()}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-gray-900 border border-gray-600 rounded px-4 py-2"
-                        disabled={!chatId}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                        placeholder={matchId ? "Type a message..." : "Waiting for match..."}
+                        className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                        disabled={!connected || !matchId}
                     />
                     <button
                         onClick={sendMessage}
-                        disabled={!chatId}
-                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-6 rounded"
+                        disabled={!connected || !matchId}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition"
                     >
                         Send
                     </button>
                 </div>
-            </div>
 
-            <p className="text-xs text-gray-500 mt-4">
-                WebSocket | Session-based chat | No rooms
-            </p>
+                <button
+                    onClick={handleLeave}
+                    className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
+                >
+                    Leave Chat (Clear Conversation)
+                </button>
+            </div>
         </div>
     );
 }
