@@ -5,6 +5,16 @@ const http = require("http");
 const WebSocket = require("ws");
 require("dotenv").config();
 
+const {
+    redis,
+    QUEUE_KEY,
+    ACTIVE_SESSIONS_KEY,
+    MATCH_CHANNEL,
+    DEVICE_MATCH_MAP,
+    processQueue,
+    cleanupMatchData
+} = require("./services/matchingService");
+
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
@@ -25,19 +35,82 @@ const matchRoutes = require("./routes/matchRoutes");
 app.use("/api", matchRoutes);
 
 // WebSocket setup
-const wss = new WebSocket.Server({ server });
-const sessions = {};
+const wss = new WebSocket.Server({ noServer: true });
+const chatSessions = {};
+
+server.on("upgrade", (request, socket, head) => {
+    const { pathname } = new URL(request.url, `http://${request.headers.host}`);
+
+    if (pathname === "/ws/chat") {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            wss.emit("connection", ws, request);
+        });
+    } else if (pathname === "/ws/queue") {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+            handleQueueConnection(ws, request);
+        });
+    } else {
+        socket.destroy();
+    }
+});
+
+async function handleQueueConnection(ws, req) {
+    let userData = null;
+    let currentMatchId = null;
+    const subscriber = redis.duplicate();
+    await subscriber.connect();
+
+    ws.on("message", async (data) => {
+        try {
+            const message = JSON.parse(data);
+            if (message.type === "join_queue") {
+                userData = message.payload; // { deviceId, nickname, bio, personalityAnswers }
+                const userJson = JSON.stringify(userData);
+
+                await redis.zadd(QUEUE_KEY, Date.now() / 1000, userJson);
+                ws.send(JSON.stringify({ status: "queued" }));
+
+                await subscriber.subscribe(MATCH_CHANNEL);
+                subscriber.on("message", (channel, msg) => {
+                    const event = JSON.parse(msg);
+                    if (event.type === "match_found") {
+                        const matchData = event.payload;
+                        if (matchData.userA.deviceId === userData.deviceId ||
+                            matchData.userB.deviceId === userData.deviceId) {
+                            currentMatchId = matchData.matchId;
+                            ws.send(JSON.stringify({ status: "matched", match: matchData }));
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error("Queue WS Error:", error);
+        }
+    });
+
+    ws.on("close", async () => {
+        if (userData) {
+            const matchId = await redis.hget(DEVICE_MATCH_MAP, userData.deviceId);
+            if (!matchId) {
+                // Remove from queue if not matched
+                const userJson = JSON.stringify(userData);
+                await redis.zrem(QUEUE_KEY, userJson);
+            }
+        }
+        await subscriber.quit();
+    });
+}
 
 wss.on("connection", (ws, req) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const matchId = url.searchParams.get("matchId") || "default";
     const deviceId = url.searchParams.get("deviceId") || "device-" + Math.random().toString(36).substr(2, 9);
 
-    if (!sessions[matchId]) {
-        sessions[matchId] = {};
+    if (!chatSessions[matchId]) {
+        chatSessions[matchId] = {};
     }
 
-    sessions[matchId][deviceId] = ws;
+    chatSessions[matchId][deviceId] = ws;
     console.log(`Device ${deviceId} connected to match ${matchId}`);
 
     ws.on("message", (data) => {
@@ -46,8 +119,7 @@ wss.on("connection", (ws, req) => {
             const action = message.action;
 
             if (action === "message") {
-                // Relay to other users
-                for (const [id, socket] of Object.entries(sessions[matchId])) {
+                for (const [id, socket] of Object.entries(chatSessions[matchId])) {
                     if (id !== deviceId && socket.readyState === WebSocket.OPEN) {
                         socket.send(JSON.stringify({
                             type: "message",
@@ -57,17 +129,7 @@ wss.on("connection", (ws, req) => {
                     }
                 }
             } else if (action === "leave") {
-                // Notify others and cleanup
-                for (const [id, socket] of Object.entries(sessions[matchId])) {
-                    if (id !== deviceId && socket.readyState === WebSocket.OPEN) {
-                        socket.send(JSON.stringify({
-                            type: "system",
-                            event: "partner_left",
-                        }));
-                    }
-                }
-                delete sessions[matchId][deviceId];
-                ws.close();
+                handleDisconnect(matchId, deviceId);
             }
         } catch (error) {
             console.error("WebSocket message error:", error);
@@ -75,17 +137,32 @@ wss.on("connection", (ws, req) => {
     });
 
     ws.on("close", () => {
-        console.log(`Device ${deviceId} disconnected from match ${matchId}`);
-        delete sessions[matchId][deviceId];
-        if (Object.keys(sessions[matchId]).length === 0) {
-            delete sessions[matchId];
-        }
+        handleDisconnect(matchId, deviceId);
     });
 
-    ws.on("error", (error) => {
-        console.error("WebSocket error:", error);
-    });
+    function handleDisconnect(mId, dId) {
+        if (chatSessions[mId] && chatSessions[mId][dId]) {
+            console.log(`Device ${dId} left match ${mId}`);
+            for (const [id, socket] of Object.entries(chatSessions[mId])) {
+                if (id !== dId && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: "system",
+                        event: "partner_left",
+                    }));
+                }
+            }
+            delete chatSessions[mId][dId];
+            if (Object.keys(chatSessions[mId]).length === 0) {
+                delete chatSessions[mId];
+            }
+            // Trigger Redis cleanup
+            cleanupMatchData(mId, [dId]);
+        }
+    }
 });
+
+// Start matching background process
+processQueue();
 
 server.listen(PORT, () => { console.log(`Server running on port ${PORT}`); });
 

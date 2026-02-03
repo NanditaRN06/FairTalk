@@ -3,6 +3,7 @@ import { getOrCreateDeviceId } from '../utils/identity';
 import CameraVerification from './CameraVerification';
 import ProfileSetup from './ProfileSetup';
 import EligibilityConfirmation from './EligibilityConfirmation';
+import MatchingQueue from './MatchingQueue';
 import ChatPage from './ChatPage';
 
 function User() {
@@ -12,6 +13,8 @@ function User() {
     const [showProfileSetup, setShowProfileSetup] = useState(false);
     const [profileData, setProfileData] = useState(null);
     const [handoffPayload, setHandoffPayload] = useState(null);
+    const [searching, setSearching] = useState(false);
+    const [matchInfo, setMatchInfo] = useState(null);
     const [enteredChat, setEnteredChat] = useState(false);
 
     useEffect(() => {
@@ -31,7 +34,7 @@ function User() {
         setHandoffPayload(null);
 
         try {
-            const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
+            const response = await fetch(`http://localhost:5000/api/user/eligibility/${deviceId}`);
             const eligibilityData = await response.json();
 
             const payload = {
@@ -50,16 +53,23 @@ function User() {
     };
 
     const handleJoinChat = () => {
+        setSearching(true);
+    };
+
+    const handleMatchFound = (match) => {
+        setMatchInfo(match);
+        setSearching(false);
         setEnteredChat(true);
     };
 
     const handleLeaveChat = () => {
-        alert("Bye for now");
         setIsVerified(false);
         setUserData(null);
         setShowProfileSetup(false);
         setProfileData(null);
         setHandoffPayload(null);
+        setSearching(false);
+        setMatchInfo(null);
         setEnteredChat(false);
         window.location.reload();
     };
@@ -83,7 +93,7 @@ function User() {
 
     if (!profileData) { return <ProfileSetup onProfileComplete={handleProfileComplete} />; }
 
-    if (handoffPayload && !enteredChat) {
+    if (handoffPayload && !searching && !enteredChat) {
         if (!handoffPayload.eligible) {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
@@ -98,7 +108,26 @@ function User() {
         return <EligibilityConfirmation onJoin={handleJoinChat} onLeave={handleLeaveChat} />;
     }
 
-    if (enteredChat) { return <ChatPage deviceId={deviceId} />; }
+    if (searching) {
+        return (
+            <MatchingQueue
+                deviceId={deviceId}
+                profileData={profileData}
+                onMatchFound={handleMatchFound}
+            />
+        );
+    }
+
+    if (enteredChat) {
+        return (
+            <ChatPage
+                deviceId={deviceId}
+                matchId={matchInfo.matchId}
+                partnerName={matchInfo.userA.deviceId === deviceId ? matchInfo.userB.nickname : matchInfo.userA.nickname}
+                onLeave={handleLeaveChat}
+            />
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans">
@@ -106,5 +135,6 @@ function User() {
         </div>
     );
 }
+
 
 export default User;
