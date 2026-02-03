@@ -35,9 +35,7 @@ The full documentation for FairTalk is split into detailed guides:
     ```bash
     cd backend
     npm install
-    cp .env.example .env
-    # Edit .env with your credentials
-    npm start
+    npm run dev
     ```
     *The backend runs on port 5000 by default.*
 
@@ -45,7 +43,6 @@ The full documentation for FairTalk is split into detailed guides:
     ```bash
     cd frontend
     npm install
-    # (Optional) cp .env.example .env
     npm run dev
     ```
     *The frontend will run via Vite (usually port 5173).*
