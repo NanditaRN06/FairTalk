@@ -41,7 +41,8 @@ const ProfileSetup = ({ onProfileComplete }) => {
         }
 
         try {
-            const res = await fetch(`http://localhost:9000/api/user/check-nickname?nickname=${encodeURIComponent(nickname)}`);
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:9000';
+            const res = await fetch(`${apiUrl}/api/user/check-nickname?nickname=${encodeURIComponent(nickname)}`);
             const data = await res.json();
 
             if (data.taken) {

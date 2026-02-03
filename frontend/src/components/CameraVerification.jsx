@@ -58,7 +58,8 @@ const CameraVerification = ({ onVerificationComplete }) => {
 
             const imageBase64 = canvas.toDataURL('image/jpeg', 0.6);
             const deviceId = getOrCreateDeviceId();
-            const response = await fetch('http://localhost:9000/api/verify', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:9000';
+            const response = await fetch(`${apiUrl}/api/verify`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: imageBase64, deviceId })

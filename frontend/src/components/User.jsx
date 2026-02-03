@@ -34,7 +34,8 @@ function User() {
         setHandoffPayload(null);
 
         try {
-            const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:9000';
+            const response = await fetch(`${apiUrl}/api/user/eligibility/${deviceId}`);
             const eligibilityData = await response.json();
             const sessionUserId = crypto.randomUUID();
 
@@ -79,7 +80,8 @@ function User() {
     const handleNextMatch = async () => {
         try {
             // Re-verify eligibility (Requirement 5.1 & Cooldowns) before next match
-            const response = await fetch(`http://localhost:9000/api/user/eligibility/${deviceId}`);
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:9000';
+            const response = await fetch(`${apiUrl}/api/user/eligibility/${deviceId}`);
             const eligibilityData = await response.json();
 
             if (!eligibilityData.eligible) {

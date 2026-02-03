@@ -26,7 +26,8 @@ const MatchingQueue = ({ deviceId, userId, profileData, gender, onMatchFound }) 
     }, [status, showRelaxModal]);
 
     useEffect(() => {
-        const socket = new WebSocket(`ws://${window.location.hostname}:9000/ws/queue`);
+        const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname}:9000`;
+        const socket = new WebSocket(`${wsUrl}/ws/queue`);
         socketRef.current = socket;
 
         socket.onopen = () => {

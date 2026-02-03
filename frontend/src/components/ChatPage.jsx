@@ -13,8 +13,8 @@ export default function ChatPage({ deviceId, userId, matchId, partnerName, onLea
     useEffect(() => {
         if (!userId || !matchId) return;
 
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const url = `${protocol}//${window.location.hostname}:9000/ws/chat?matchId=${matchId}&userId=${userId}&deviceId=${deviceId}`;
+        const baseWsUrl = import.meta.env.VITE_WS_URL || (window.location.protocol === "https:" ? "wss:" : "ws:") + `//${window.location.hostname}:9000`;
+        const url = `${baseWsUrl}/ws/chat?matchId=${matchId}&userId=${userId}&deviceId=${deviceId}`;
 
         ws.current = new WebSocket(url);
 
@@ -110,7 +110,8 @@ export default function ChatPage({ deviceId, userId, matchId, partnerName, onLea
         if (!reportReason) return;
 
         try {
-            await fetch(`http://${window.location.hostname}:9000/api/match/report`, {
+            const apiUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:9000`;
+            await fetch(`${apiUrl}/api/match/report`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
