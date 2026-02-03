@@ -43,6 +43,9 @@ exports.submitReport = async (req, res) => {
             console.warn(`[Report] Reported user ${reportedId} not found in DB.`);
         }
 
+        const { cleanupMatchData } = require("../services/matchingService");
+        await cleanupMatchData(matchId, [reporterId, reportedId]);
+
         return res.status(200).json({ message: "Report submitted successfully." });
 
     } catch (error) {

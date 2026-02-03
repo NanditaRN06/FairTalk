@@ -63,14 +63,16 @@ async function handleQueueConnection(ws, req) {
             const message = JSON.parse(data);
             if (message.type === "join_queue") {
                 userData = message.payload;
-                const userJson = JSON.stringify(userData);
+                const userId = userData.userId;
 
-                await redis.zadd(QUEUE_KEY, { score: Date.now() / 1000, member: userJson });
+                await redis.set(`user_meta:${userId}`, JSON.stringify(userData), { ex: 600 });
+                await redis.zadd(QUEUE_KEY, { score: Date.now() / 1000, member: userId });
+
                 ws.send(JSON.stringify({ status: "queued" }));
 
                 pollInterval = setInterval(async () => {
                     try {
-                        const targetId = userData.userId || userData.deviceId;
+                        const targetId = userId || userData.deviceId;
                         const matchId = await redis.hget(DEVICE_MATCH_MAP, targetId);
 
                         if (matchId) {
@@ -91,16 +93,8 @@ async function handleQueueConnection(ws, req) {
                 }, 2000);
             } else if (message.type === "update_criteria") {
                 if (userData) {
-                    const oldUserJson = JSON.stringify(userData);
                     userData = { ...userData, ...message.payload };
-                    const newUserJson = JSON.stringify(userData);
-
-                    await redis.zrem(QUEUE_KEY, oldUserJson);
-                    await redis.zadd(QUEUE_KEY, { score: Date.now() / 1000, member: newUserJson });
-
-                    if (message.payload.allowRelaxation) {
-                        console.log(`[Queue] Search threshold exceeded — user ${userData.nickname} consented to relaxed personality matching.`);
-                    }
+                    await redis.set(`user_meta:${userData.userId}`, JSON.stringify(userData), { ex: 600 });
                 }
             }
         } catch (error) {
@@ -111,11 +105,13 @@ async function handleQueueConnection(ws, req) {
     ws.on("close", async () => {
         if (pollInterval) clearInterval(pollInterval);
         if (userData) {
-            const targetId = userData.userId || userData.deviceId;
+            const userId = userData.userId;
+            const targetId = userId || userData.deviceId;
             const matchId = await redis.hget(DEVICE_MATCH_MAP, targetId);
+
             if (!matchId) {
-                const userJson = JSON.stringify(userData);
-                await redis.zrem(QUEUE_KEY, userJson);
+                await redis.zrem(QUEUE_KEY, userId);
+                await redis.del(`user_meta:${userId}`);
             }
         }
     });
@@ -156,17 +152,9 @@ wss.on("connection", (ws, req) => {
         }
     });
 
-    const heartbeatInterval = setInterval(() => {
-        wss.clients.forEach((ws) => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: "ping" }));
-            }
-        });
-    }, 30000);
-
-    wss.on("close", () => { clearInterval(heartbeatInterval); });
-
-    ws.on("close", () => { handleDisconnect(matchId, userId, true); });
+    ws.on("close", () => {
+        handleDisconnect(matchId, userId, true);
+    });
 
     function handleDisconnect(mId, uId, permanent) {
         if (chatSessions[mId] && chatSessions[mId][uId]) {
@@ -181,6 +169,7 @@ wss.on("connection", (ws, req) => {
                 }
             }
 
+            const { cleanupMatchData } = require("./services/matchingService");
             cleanupMatchData(mId, [uId]);
             delete chatSessions[mId][uId];
 
@@ -188,6 +177,14 @@ wss.on("connection", (ws, req) => {
         }
     }
 });
+
+setInterval(() => {
+    wss.clients.forEach((ws) => {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "ping" }));
+        }
+    });
+}, 30000);
 
 processQueue();
 
