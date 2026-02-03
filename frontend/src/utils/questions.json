@@ -1,0 +1,135 @@
+{
+    "introText": "To help create better conversations, we'll ask you a few quick questions about how you like to chat.\n\nThis isn't a personality test, and there are no right or wrong answers.\nYour responses are used only to set the conversation tone and are never shown to other users.\n\nIt takes less than a minute - answer honestly and go with what feels most like you.",
+    "questions": [
+        {
+            "id": "q1",
+            "text": "When you chat, you usually …",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Say things directly"
+                },
+                {
+                    "id": "B",
+                    "text": "Joke around"
+                },
+                {
+                    "id": "C",
+                    "text": "Think before replying"
+                },
+                {
+                    "id": "D",
+                    "text": "Talk a lot and share feelings"
+                },
+                {
+                    "id": "E",
+                    "text": "Mostly listen"
+                }
+            ]
+        },
+        {
+            "id": "q2",
+            "text": "You like chats that are …",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Relaxed"
+                },
+                {
+                    "id": "B",
+                    "text": "Full of energy"
+                },
+                {
+                    "id": "C",
+                    "text": "Serious or meaningful"
+                },
+                {
+                    "id": "D",
+                    "text": "Light and casual"
+                },
+                {
+                    "id": "E",
+                    "text": "A mix of anything"
+                }
+            ]
+        },
+        {
+            "id": "q3",
+            "text": "At the beginning of a chat, you …",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Ask an interesting question"
+                },
+                {
+                    "id": "B",
+                    "text": "Start with a joke"
+                },
+                {
+                    "id": "C",
+                    "text": "Share what’s on your mind"
+                },
+                {
+                    "id": "D",
+                    "text": "Wait and respond"
+                },
+                {
+                    "id": "E",
+                    "text": "Let the other person lead"
+                }
+            ]
+        },
+        {
+            "id": "q4",
+            "text": "A chat feels good when it …",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Stays simple"
+                },
+                {
+                    "id": "B",
+                    "text": "Talks about a few clear topics"
+                },
+                {
+                    "id": "C",
+                    "text": "Goes deeper into ideas or feelings"
+                },
+                {
+                    "id": "D",
+                    "text": "Just flows naturally"
+                },
+                {
+                    "id": "E",
+                    "text": "Keeps exploring new things"
+                }
+            ]
+        },
+        {
+            "id": "q5",
+            "text": "Your reply speed is usually …",
+            "options": [
+                {
+                    "id": "A",
+                    "text": "Very quick"
+                },
+                {
+                    "id": "B",
+                    "text": "Normal"
+                },
+                {
+                    "id": "C",
+                    "text": "Slow but thoughtful"
+                },
+                {
+                    "id": "D",
+                    "text": "Changes with the topic"
+                },
+                {
+                    "id": "E",
+                    "text": "Matches the other person"
+                }
+            ]
+        }
+    ]
+}

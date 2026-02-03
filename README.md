@@ -4,23 +4,39 @@
 
 ```
 ├── backend
-│   │   ├── controllers
-│   │   │   └── .gitkeep
-│   │   ├── routes
-│   │   │   └── .gitkeep
+│   ├── controllers
+│   │   ├── matchController.js
+│   │   ├── reportController.js
+│   │   ├── userController.js
+│   │   └── verificationController.js
+│   ├── models
+│   │   └── User.js
+│   ├── routes
+│   │   ├── matchRoutes.js
+│   │   ├── userRoutes.js
+│   │   └── verificationRoutes.js
+│   ├── services
+│   │   ├── aiService.js
+│   │   └── matchingService.js
 │   ├── package.json
 │   └── server.js
 ├── frontend
 │   ├── public
+│   │   ├── favicon.svg
 │   │   └── vite.svg
 │   ├── src
 │   │   ├── assets
 │   │   │   └── react.svg
 │   │   ├── components
-│   │   │   └── .gitkeep
+│   │   │   ├── CameraVerification.jsx
+│   │   │   ├── ChatPage.jsx
+│   │   │   ├── EligibilityConfirmation.jsx
+│   │   │   ├── MatchingQueue.jsx
+│   │   │   ├── ProfileSetup.jsx
+│   │   │   └── User.jsx
 │   │   ├── utils
-│   │   │   └── .gitkeep
-│   │   ├── App.css
+│   │   │   ├── identity.js
+│   │   │   └── questions.json
 │   │   ├── App.jsx
 │   │   ├── index.css
 │   │   └── main.jsx
