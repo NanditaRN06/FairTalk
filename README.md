@@ -29,6 +29,7 @@ The full documentation for FairTalk is split into detailed guides:
 - Redis (Upstash or local)
 - Luxand Cloud Account (for Face Verification)
 
+
 ### Installation
 
 1.  **Clone the repository** (if you haven't already).
@@ -68,7 +69,10 @@ The full documentation for FairTalk is split into detailed guides:
 - **Core:** React, Node.js, Express
 - **Real-time:** WebSockets (`ws`), Redis (Pub/Sub)
 - **Database:** MongoDB, Redis
-- **AI:** Luxand Face Recognition
+- **AI:** Luxand Face Recognition (Using the free trial version which has a limit of number of requests)
 - **Design:** Tailwind CSS
+
+  **For the working of the website internet connection is a must.**
+
 
 
