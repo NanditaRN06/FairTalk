@@ -49,6 +49,90 @@ A background worker (`matchingService.js`) polls the queue every 1 second.
     -   Pairs must meet a dynamic threshold (e.g., > 6.0 during high traffic, > 0.5 during low traffic).
     -   **Relaxed Mode:** Users waiting > 60s can opt-in to reduce the threshold by 60%.
 
+## Core Matching Philosophy : 
+The matching system follows **four clear principles**:
+
+1. **Questions come first**  
+   Structured answers are always the primary signal.
+
+2. **Bio never overrides answers**  
+   Bio is used only to refine or prioritize, never to force a match.
+
+3. **No silent relaxation**  
+   Preferences are relaxed only with user consent or in clearly defined sparse scenarios.
+
+4. **No one should wait forever**  
+   The system progressively relaxes matching rules in a safe and explainable way.
+   
+## Matching Stages (Step by Step)  : 
+### Stage 1: Strict Matching (Default)
+
+- The system first looks for users with **very similar answers**.
+- Gender preference must match.
+* This stage is used when traffic is normal or high.
+
+If a strict match is found → users are matched immediately.
+
+---
+
+### Stage 2: Relaxed Personality Matching
+
+If no strict match exists:
+
+- The system allows **partial matches** (3 out of 5 questions).
+- Answers must still be compatible (no direct conflict).
+- Users remain in the same general personality group.
+
+Bio may be used here as a **small ranking bonus**.
+
+---
+
+### Stage 3: User-Consented Relaxation (Search Timeout)
+
+If the user has been searching longer than a fixed threshold (for example 20–30 seconds):
+
+- A popup appears:
+  > “We couldn’t find someone matching all your preferences.  
+  Would you like to find someone with a similar personality instead?”
+
+The user chooses:
+- **Yes** → relaxed matching is enabled
+- **No** → continue strict search
+
+This ensures the user is always in control.
+
+---
+
+### Stage 4: Bio-Dominant Fallback (Sparse Queue Only)
+
+When traffic is very low (for example only 1–2 users online):
+
+- Bio alignment is allowed to become the **primary signal**
+- At least one shared bio tag is required
+- This mode activates **only in sparse queues**
+
+This prevents users from being stuck waiting during demos or off-peak hours.
+
+---
+
+### Stage 5: Leftover Option Similarity (Final Fallback)
+
+If all other stages fail:
+
+- The system checks **“leftover options”**
+- For each question:
+  - Each user selected one option
+  - All other options are considered acceptable leftovers
+- If two users did not choose the same option but **did not reject each other’s style**, the mismatch is allowed
+
+Matches are ranked based on:
+- number of compatible leftover options
+- waiting time (fairness)
+
+This ensures:
+- nearest acceptable matches are preferred
+- bad matches are never forced
+
 ---
 
 ## 4. Module 3: Chat Module 💬
