@@ -2,7 +2,7 @@
 
 FairTalk is a real-time, AI-verified chat platform designed to connect people based on personality compatibility and fairness.
 
-> **Deploy:** https://fairtalk.netlify.app/
+> **Deploy:** [ https://fair-talk.vercel.app/](https://fair-talk.vercel.app/)
 
 ## 📚 Documentation
 
